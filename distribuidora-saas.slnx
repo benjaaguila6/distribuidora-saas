@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="distribuidora-saas-Domain/distribuidora-saas.Domain.csproj" />
+    <Project Path="distribuidora-saas.Api/distribuidora-saas.Api.csproj" />
+    <Project Path="distribuidora-saas.Application/distribuidora-saas.Application.csproj" />
+    <Project Path="distribuidora-saas.Infrastructure/distribuidora-saas.Infrastructure.csproj" />
+  </Folder>
+</Solution>
