@@ -1,6 +1,7 @@
 ﻿using distribuidora_saas.Application.Common.Interfaces;
 using distribuidora_saas.Infrastructure.Persistence.Interceptors;
 using distribuidora_saas_Domain.Common;
+using distribuidora_saas_Domain.Entitites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using System;
@@ -20,9 +21,11 @@ namespace distribuidora_saas.Infrastructure.Persistence
         {
             _currentTenantService = currentTenantService;
             _auditInterceptor = auditInterceptor;
+
         }
 
-        // dbSets
+        DbSet<Cliente> Clientes => Set<Cliente>();
+        DbSet<Producto> Productos => Set<Producto>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
