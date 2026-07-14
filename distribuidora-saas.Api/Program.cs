@@ -3,6 +3,8 @@ using distribuidora_saas.Infrastructure.Persistence;
 using distribuidora_saas.Infrastructure.Persistence.Interceptors;
 using distribuidora_saas.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using FluentValidation;
+using distribuidora_saas.Api.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +17,13 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
+builder.Services.AddScoped<ValidationFilter>();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.AddService<ValidationFilter>();
+});
 builder.Services.AddSingleton<AuditableEntitySaveChangesInterceptor>();
+builder.Services.AddValidatorsFromAssembly(typeof(distribuidora_saas.Application.Clientes.DTOs.CrearClienteDto).Assembly);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
