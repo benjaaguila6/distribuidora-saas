@@ -24,8 +24,8 @@ namespace distribuidora_saas.Infrastructure.Persistence
 
         }
 
-        DbSet<Cliente> Clientes => Set<Cliente>();
-        DbSet<Producto> Productos => Set<Producto>();
+         public DbSet<Cliente> Clientes => Set<Cliente>();
+         public DbSet<Producto> Productos => Set<Producto>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

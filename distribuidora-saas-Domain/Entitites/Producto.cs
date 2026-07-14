@@ -60,6 +60,16 @@ namespace distribuidora_saas_Domain.Entitites
             Costo = costo;
         }
 
+        public void ActualizarNombre(string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                throw new ArgumentException("El nombre del producto es obligatorio.", nameof(nombre));
+            }
+
+            Nombre = nombre;
+        }
+
         public void Desactivar() => Activo = false;
         public void Reactivar() => Activo = true;
     }
