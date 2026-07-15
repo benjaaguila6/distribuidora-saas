@@ -2,6 +2,7 @@
 using distribuidora_saas.Application.Productos.DTOs;
 using distribuidora_saas.Infrastructure.Persistence;
 using distribuidora_saas_Domain.Entitites;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ namespace distribuidora_saas.Api.Controllers
     
     [ApiController]
     [Route("api/productos")]
+    [Authorize]
     public class ProductosController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

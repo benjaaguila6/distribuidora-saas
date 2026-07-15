@@ -1,5 +1,6 @@
 ﻿using distribuidora_saas.Infrastructure.Persistence.Interceptors;
 using distribuidora_saas.Infrastructure.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +25,7 @@ namespace distribuidora_saas.Infrastructure.Persistence
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
             optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
 
-            var currentTenantService = new CurrentTenantService();
+            var currentTenantService = new CurrentTenantService(new HttpContextAccessor());
             var auditInterceptor = new AuditableEntitySaveChangesInterceptor();
 
             return new ApplicationDbContext(optionsBuilder.Options, currentTenantService, auditInterceptor);
