@@ -32,7 +32,7 @@ namespace distribuidora_saas.Infrastructure.Services
             new(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, usuario.Email),
             new("tenant_id", usuario.TenantId.ToString()),
-            new("rol", usuario.Rol.ToString()),
+            new(ClaimTypes.Role, usuario.Rol.ToString()),
             new("nombre", usuario.NombreCompleto)
         };
 

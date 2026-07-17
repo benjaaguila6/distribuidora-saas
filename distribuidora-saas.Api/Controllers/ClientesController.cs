@@ -64,6 +64,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador,Gerente")]
         public async Task<ActionResult<ClienteResponseDto>> Crear(
             [FromBody] CrearClienteDto dto,
             [FromServices] Application.Common.Interfaces.ICurrentTenantService currentTenant)
@@ -85,6 +86,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPut("{id:guid}/contacto")]
+        [Authorize(Roles = "Administrador,Gerente")]
         public async Task<ActionResult> ActualizarContacto(Guid id, [FromBody] ActualizarContactoClienteDto dto)
         {
             var cliente = await _context.Clientes.FindAsync(id);
@@ -97,6 +99,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/desactivar")]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> Desactivar(Guid id)
         {
             var cliente = await _context.Clientes.FindAsync(id);
@@ -109,6 +112,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/reactivar")]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> Reactivar(Guid id)
         {
             var cliente = await _context.Clientes.FindAsync(id);
