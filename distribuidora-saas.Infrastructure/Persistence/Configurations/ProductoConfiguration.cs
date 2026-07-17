@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using distribuidora_saas_Domain.Entitites;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
+﻿using distribuidora_saas_Domain.Entitites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,6 +11,8 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
             builder.ToTable("Productos");
 
             builder.HasKey(p => p.Id);
+
+            builder.Property(x => x.Id).ValueGeneratedNever();
 
             builder.Property(p => p.Nombre)
                 .IsRequired()

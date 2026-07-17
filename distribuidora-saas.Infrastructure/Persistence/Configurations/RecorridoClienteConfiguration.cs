@@ -15,8 +15,8 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
 
             builder.HasKey(rc => rc.Id);
 
-            builder.Property(rc => rc.Orden)
-                .IsRequired();
+            builder.Property(rc => rc.Id)
+                .ValueGeneratedNever();
 
             builder.HasOne<Cliente>()
                 .WithMany()
