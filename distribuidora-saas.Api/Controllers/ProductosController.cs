@@ -62,6 +62,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador,Gerente")]
         public async Task<ActionResult<ProductoResponseDto>> Crear(
             [FromBody] CrearProductoDto dto,
             [FromServices] ICurrentTenantService currentTenant)
@@ -80,6 +81,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPut("{id:guid}/nombre")]
+        [Authorize(Roles = "Administrador,Gerente")]
         public async Task<ActionResult> ActualizarNombre(Guid id, [FromBody] ActualizarNombreProductoDto dto)
         {
             var producto = await _context.Productos.FindAsync(id);
@@ -92,6 +94,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPut("{id:guid}/precios")]
+        [Authorize(Roles = "Administrador,Gerente")]
         public async Task<ActionResult> ActualizarPrecios(Guid id, [FromBody] ActualizarPreciosProductoDto dto)
         {
             var producto = await _context.Productos.FindAsync(id);
@@ -104,6 +107,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/desactivar")]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> Desactivar(Guid id)
         {
             var producto = await _context.Productos.FindAsync(id);
@@ -116,6 +120,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/reactivar")]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> Reactivar(Guid id)
         {
             var producto = await _context.Productos.FindAsync(id);
