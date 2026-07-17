@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using distribuidora_saas.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using distribuidora_saas.Infrastructure.Persistence;
 namespace distribuidora_saas.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260717015516_InicialRecorridos")]
+    partial class InicialRecorridos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -25,6 +28,7 @@ namespace distribuidora_saas.Infrastructure.Migrations
             modelBuilder.Entity("distribuidora_saas_Domain.Entitites.Cliente", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Direccion")
@@ -88,6 +92,7 @@ namespace distribuidora_saas.Infrastructure.Migrations
             modelBuilder.Entity("distribuidora_saas_Domain.Entitites.Producto", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("Activo")
@@ -130,6 +135,7 @@ namespace distribuidora_saas.Infrastructure.Migrations
             modelBuilder.Entity("distribuidora_saas_Domain.Entitites.Recorrido", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("Activo")
@@ -164,6 +170,7 @@ namespace distribuidora_saas.Infrastructure.Migrations
             modelBuilder.Entity("distribuidora_saas_Domain.Entitites.RecorridoCliente", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ClienteId")
@@ -188,6 +195,7 @@ namespace distribuidora_saas.Infrastructure.Migrations
             modelBuilder.Entity("distribuidora_saas_Domain.Entitites.Usuario", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Email")

@@ -15,6 +15,8 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
 
             builder.HasKey(u => u.Id);
 
+            builder.Property(x => x.Id).ValueGeneratedNever();
+
             builder.Property(u => u.Email)
                 .IsRequired()
                 .HasMaxLength(256);
