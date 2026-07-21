@@ -29,6 +29,8 @@ namespace distribuidora_saas.Infrastructure.Persistence
         public DbSet<Usuario> Usuarios => Set<Usuario>();
         public DbSet<Recorrido> Recorridos => Set<Recorrido>();
         public DbSet<RecorridoCliente> RecorridoClientes => Set<RecorridoCliente>();
+        public DbSet<Reparto> Repartos => Set<Reparto>();
+        public DbSet<RepartoStockInicial> RepartoStockIniciales => Set<RepartoStockInicial>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
