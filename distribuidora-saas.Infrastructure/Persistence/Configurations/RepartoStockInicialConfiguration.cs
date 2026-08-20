@@ -21,6 +21,9 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
             builder.Property(s => s.CantidadInicial)
                 .IsRequired();
 
+            builder.Property(s => s.CantidadRestante)
+                .IsRequired();
+
             builder.HasOne<Producto>()
                 .WithMany()
                 .HasForeignKey(s => s.ProductoId)

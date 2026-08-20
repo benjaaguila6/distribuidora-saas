@@ -18,6 +18,9 @@ namespace distribuidora_saas_Domain.Entitites
         private readonly List<RepartoStockInicial> _stockInicial = new();
         public IReadOnlyCollection<RepartoStockInicial> StockInicial => _stockInicial.AsReadOnly();
 
+        private readonly List<RepartoEnvaseRetirado> _envasesRetirados = new();
+        public IReadOnlyCollection<RepartoEnvaseRetirado> EnvasesRetirados => _envasesRetirados.AsReadOnly();
+
         private Reparto() { }
 
         public Reparto(Guid tenantId, Guid recorridoId, Guid repartidorId, DateTime fechaReparto)
@@ -44,13 +47,54 @@ namespace distribuidora_saas_Domain.Entitites
             _stockInicial.Add(new RepartoStockInicial(Id, productoId, cantidad));
         }
 
+        public void DescontarStock(Guid productoId, int cantidad)
+        {
+            if (Estado != EstadoReparto.EnCurso)
+            {
+                throw new InvalidOperationException("Solo se puede descontar stock de un reparto que esté en curso.");
+            }
+
+            var stockProducto = _stockInicial.FirstOrDefault(s => s.ProductoId == productoId) ?? throw new InvalidOperationException("Este producto no fue cargado en el stock inicial de este reparto.");
+
+            stockProducto.DescontarCantidad(cantidad);
+        }
+
+        public void RegistrarEnvaseRetirado(Guid productoId, int cantidad)
+        {
+            if (Estado != EstadoReparto.EnCurso)
+            {
+                throw new InvalidOperationException("Solo se puede registrar envases retirados en un reparto que esté en curso.");
+            }
+
+            var registro = _envasesRetirados.FirstOrDefault(e => e.ProductoId == productoId);
+
+            if (registro is null)
+            {
+                _envasesRetirados.Add(new RepartoEnvaseRetirado(Id, productoId, cantidad));
+            }
+            else
+            {
+                registro.AcumularCantidad(cantidad);
+            }
+        }
+
+        // Método de consulta para el cierre del reparto
+        public int ObtenerCantidadEsperadaDeEnvases(Guid productoId)
+        {
+            throw new NotImplementedException("Se implementa en el bloque de Cierre de Reparto.");
+        }
+
         public void IniciarReparto()
         {
             if (Estado != EstadoReparto.Planificado)
+            {
                 throw new InvalidOperationException("Solo se puede iniciar un reparto que esté en estado Planificado.");
+            }
 
             if (_stockInicial.Count == 0)
+            {
                 throw new InvalidOperationException("No se puede iniciar un reparto sin stock inicial cargado.");
+            }
 
             Estado = EstadoReparto.EnCurso;
             FechaInicio = DateTime.UtcNow;

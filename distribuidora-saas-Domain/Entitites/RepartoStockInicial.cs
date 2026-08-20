@@ -10,6 +10,7 @@ namespace distribuidora_saas_Domain.Entitites
         public Guid RepartoId { get; private set; }
         public Guid ProductoId { get; private set; }
         public int CantidadInicial { get; private set; }
+        public int CantidadRestante { get; private set; }
 
         private RepartoStockInicial() { }
 
@@ -19,6 +20,15 @@ namespace distribuidora_saas_Domain.Entitites
             RepartoId = repartoId;
             ProductoId = productoId;
             CantidadInicial = cantidadInicial;
+            CantidadRestante = cantidadInicial;
+        }
+
+        internal void DescontarCantidad(int cantidad)
+        {
+            if (cantidad > CantidadRestante)
+                throw new InvalidOperationException($"No hay suficiente stock restante. Disponible: {CantidadRestante}, solicitado: {cantidad}.");
+
+            CantidadRestante -= cantidad;
         }
     }
 }

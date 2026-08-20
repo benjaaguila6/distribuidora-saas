@@ -14,6 +14,7 @@ namespace distribuidora_saas.Application.Repartos.DTOs
         DateTime FechaReparto,
         DateTime? FechaInicio,
         DateTime? FechaFinalizacion,
-        List<StockInicialResponseDto> StockInicial
+        List<StockInicialResponseDto> StockInicial,
+        List<EnvaseRetiradoResponseDto> EnvasesRetirados
     );
 }
