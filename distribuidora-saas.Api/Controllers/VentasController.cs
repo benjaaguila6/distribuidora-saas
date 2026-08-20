@@ -28,6 +28,7 @@ namespace distribuidora_saas.Api.Controllers
         {
             var venta = await _context.Ventas
                 .Include(v => v.Productos)
+                .Include(v => v.Pagos)
                 .FirstOrDefaultAsync(v => v.Id == id);
 
             if (venta is null)
@@ -43,6 +44,7 @@ namespace distribuidora_saas.Api.Controllers
         {
             var ventas = await _context.Ventas
                 .Include(v => v.Productos)
+                .Include(v => v.Pagos)
                 .Where(v => v.RepartoId == repartoId)
                 .OrderBy(v => v.FechaVenta)
                 .ToListAsync();
@@ -84,34 +86,97 @@ namespace distribuidora_saas.Api.Controllers
                 return BadRequest("Solo se pueden registrar ventas en un reparto que esté en curso.");
             }
                 
-            var clienteExiste = await _context.Clientes.AnyAsync(c => c.Id == dto.ClienteId && c.Estado == distribuidora_saas_Domain.Enums.EstadoCliente.Activo);
-            
-            if (!clienteExiste)
+            var cliente = await _context.Clientes
+                .FirstOrDefaultAsync(c => c.Id == dto.ClienteId && c.Estado == distribuidora_saas_Domain.Enums.EstadoCliente.Activo);
+
+            if (cliente is null)
             {
                 return BadRequest("El cliente indicado no existe o está inactivo.");
             }
-                
+
             var venta = new Venta(currentTenant.TenantId.Value, dto.RepartoId, dto.ClienteId, dto.DineroRecibido, dto.Observaciones);
 
             try
             {
+                var productosPorId = new Dictionary<Guid, Producto>();
+
                 foreach (var productoDto in dto.Productos)
                 {
-                    var productoExiste = await _context.Productos.AnyAsync(p => p.Id == productoDto.ProductoId);
-                    if (!productoExiste)
+                    var producto = await _context.Productos
+                        .FirstOrDefaultAsync(p => p.Id == productoDto.ProductoId && p.Activo);
+
+                    if (producto is null)
                     {
-                        return BadRequest($"El producto {productoDto.ProductoId} no existe.");
+                        return BadRequest($"El producto {productoDto.ProductoId} no existe o está inactivo.");
                     }
+
+                    productosPorId[productoDto.ProductoId] = producto;
 
                     venta.AgregarProducto(productoDto.ProductoId, productoDto.TipoMovimiento, productoDto.Cantidad);
 
-                    if (productoDto.TipoMovimiento == TipoMovimientoProducto.Entregado)
+                    if (productoDto.TipoMovimiento == TipoMovimientoProducto.Entregado ||
+                        productoDto.TipoMovimiento == TipoMovimientoProducto.Cambio)
                     {
                         reparto.DescontarStock(productoDto.ProductoId, productoDto.Cantidad);
                     }
-                    else
+                    else if (productoDto.TipoMovimiento == TipoMovimientoProducto.Retirado)
                     {
                         reparto.RegistrarEnvaseRetirado(productoDto.ProductoId, productoDto.Cantidad);
+                    }
+                }
+
+                foreach (var pagoDto in dto.Pagos)
+                {
+                    venta.AgregarPago(pagoDto.FormaPago, pagoDto.Monto, pagoDto.ImporteEntregadoPorCliente);
+                }
+
+                venta.ValidarPagosCompletos();
+
+                var excedenteOFaltante = venta.CalcularExcedenteOFaltante(pid => productosPorId[pid].Precio);
+
+                if (excedenteOFaltante < 0)
+                {
+                    cliente.RegistrarDeuda(-excedenteOFaltante);
+                }
+                else if (excedenteOFaltante > 0)
+                {
+                    cliente.RegistrarPagoDeuda(excedenteOFaltante);
+                }
+
+                foreach (var productoDto in dto.Productos)
+                {
+                    var producto = productosPorId[productoDto.ProductoId];
+
+                    if (producto.TipoEnvase != TipoEnvase.Retornable)
+                    {
+                        continue;
+                    }
+
+                    if (productoDto.TipoMovimiento == TipoMovimientoProducto.Entregado)
+                    {
+                        var movimiento = MovimientoEnvase.Crear(
+                            currentTenant.TenantId.Value,
+                            dto.ClienteId,
+                            venta.Id,
+                            productoDto.ProductoId,
+                            TipoMovimientoEnvase.Prestado,
+                            productoDto.Cantidad);
+
+                        _context.MovimientosEnvases.Add(movimiento);
+                        cliente.ActualizarSaldoEnvases(productoDto.Cantidad);
+                    }
+                    else if (productoDto.TipoMovimiento == TipoMovimientoProducto.Retirado)
+                    {
+                        var movimiento = MovimientoEnvase.Crear(
+                            currentTenant.TenantId.Value,
+                            dto.ClienteId,
+                            venta.Id,
+                            productoDto.ProductoId,
+                            TipoMovimientoEnvase.Devuelto,
+                            productoDto.Cantidad);
+
+                        _context.MovimientosEnvases.Add(movimiento);
+                        cliente.ActualizarSaldoEnvases(-productoDto.Cantidad);
                     }
                 }
             }
@@ -147,11 +212,20 @@ namespace distribuidora_saas.Api.Controllers
                     p.Cantidad))
                 .ToList();
 
+            var pagosDto = venta.Pagos
+                .Select(p => new VentaPagoResponseDto(
+                    p.FormaPago.ToString(),
+                    p.Monto,
+                    p.ImporteEntregadoPorCliente,
+                    p.Vuelto))
+                .ToList();
+
             return new VentaResponseDto(
                 venta.Id, venta.RepartoId, venta.ClienteId,
                 cliente?.Nombre ?? "Cliente no encontrado",
                 venta.DineroRecibido, venta.Observaciones, venta.FechaVenta,
-                productosDto);
+                productosDto,
+                pagosDto);
         }
     }
 }

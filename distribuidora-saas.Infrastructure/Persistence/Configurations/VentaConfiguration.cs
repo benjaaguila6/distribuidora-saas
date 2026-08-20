@@ -43,6 +43,15 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
                 .FindNavigation(nameof(Venta.Productos))!
                 .SetPropertyAccessMode(PropertyAccessMode.Field);
 
+            builder.HasMany(v => v.Pagos)
+                .WithOne()
+                .HasForeignKey(vp => vp.VentaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Metadata
+                .FindNavigation(nameof(Venta.Pagos))!
+                .SetPropertyAccessMode(PropertyAccessMode.Field);
+
             builder.HasIndex(v => new { v.TenantId, v.FechaVenta });
             builder.HasIndex(v => v.ClienteId);
         }

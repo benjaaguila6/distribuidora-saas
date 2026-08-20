@@ -10,5 +10,8 @@ namespace distribuidora_saas.Application.Ventas.DTOs
         decimal DineroRecibido,
         string? Observaciones,
         List<ProductoVentaDto> Productos
-    );
+    )
+    {
+        public List<PagoVentaDto> Pagos { get; init; } = new();
+    }
 }
