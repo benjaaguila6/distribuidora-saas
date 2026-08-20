@@ -48,6 +48,43 @@ namespace distribuidora_saas_Domain.Entitites
             Observaciones = observaciones;
         }
 
+        public void RegistrarDeuda(decimal monto)
+        {
+            if (monto < 0)
+            {
+                throw new ArgumentException("El monto de deuda no puede ser negativo.", nameof(monto));
+            }
+
+            SaldoDeudaActual += monto;
+        }
+
+        public void RegistrarPagoDeuda(decimal monto)
+        {
+            if (monto <= 0)
+            {
+                throw new ArgumentException("El monto a descontar de la deuda debe ser mayor a cero.", nameof(monto));
+            }
+
+            if (monto > SaldoDeudaActual)
+            {
+                throw new InvalidOperationException($"No hay suficiente deuda para descontar. Disponible: {SaldoDeudaActual}, solicitado: {monto}.");
+            }
+
+            SaldoDeudaActual -= monto;
+        }
+
+        public void ActualizarSaldoEnvases(int diferencia)
+        {
+            var nuevoSaldo = SaldoEnvasesActual + diferencia;
+
+            if (nuevoSaldo < 0)
+            {
+                throw new InvalidOperationException("El saldo de envases no puede ser negativo.");
+            }
+
+            SaldoEnvasesActual = nuevoSaldo;
+        }
+
         public void Desactivar()
         {
             Estado = EstadoCliente.Inactivo;

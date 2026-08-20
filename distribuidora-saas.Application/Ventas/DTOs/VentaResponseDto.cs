@@ -12,6 +12,7 @@ namespace distribuidora_saas.Application.Ventas.DTOs
         decimal DineroRecibido,
         string? Observaciones,
         DateTime FechaVenta,
-        List<VentaProductoResponseDto> Productos
+        List<VentaProductoResponseDto> Productos,
+        List<VentaPagoResponseDto> Pagos
     );
 }
