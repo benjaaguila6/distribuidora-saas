@@ -44,6 +44,7 @@ namespace distribuidora_saas.Api.Controllers
         {
             var reparto = await _context.Repartos
                 .Include(r => r.StockInicial)
+                .Include(r => r.EnvasesRetirados)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (reparto is null) return NotFound();
@@ -188,7 +189,20 @@ namespace distribuidora_saas.Api.Controllers
                 .Select(s => new StockInicialResponseDto(
                     s.ProductoId,
                     nombresProductos.GetValueOrDefault(s.ProductoId, "Producto no encontrado"),
-                    s.CantidadInicial))
+                    s.CantidadInicial,
+                    s.CantidadRestante))
+                .ToList();
+
+            var productoIdsEnvases = reparto.EnvasesRetirados.Select(e => e.ProductoId).ToList();
+            var nombresProductosEnvases = await _context.Productos
+                .Where(p => productoIdsEnvases.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Nombre);
+
+            var envasesDto = reparto.EnvasesRetirados
+                .Select(e => new EnvaseRetiradoResponseDto(
+                    e.ProductoId,
+                    nombresProductosEnvases.GetValueOrDefault(e.ProductoId, "Producto no encontrado"),
+                    e.CantidadRetirada))
                 .ToList();
 
             return new RepartoResponseDto(
@@ -201,7 +215,9 @@ namespace distribuidora_saas.Api.Controllers
                 reparto.FechaReparto,
                 reparto.FechaInicio,
                 reparto.FechaFinalizacion,
-                stockDto);
+                stockDto,
+                envasesDto
+            );
         }
     }
 }

@@ -41,10 +41,15 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
                 .FindNavigation(nameof(Reparto.StockInicial))!
                 .SetPropertyAccessMode(PropertyAccessMode.Field);
 
-            // Índice único filtrado: un Repartidor no puede tener
-            // más de un Reparto en estado "EnCurso" a la vez.
-            // La comparación es contra el valor de texto porque el enum
-            // se guarda como string (HasConversion<string>() arriba).
+            builder.HasMany(r => r.EnvasesRetirados)
+                .WithOne()
+                .HasForeignKey(e => e.RepartoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Metadata
+                .FindNavigation(nameof(Reparto.EnvasesRetirados))!
+                .SetPropertyAccessMode(PropertyAccessMode.Field);
+
             builder.HasIndex(r => r.RepartidorId)
                 .HasFilter("[Estado] = 'EnCurso'")
                 .IsUnique();
