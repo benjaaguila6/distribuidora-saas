@@ -72,6 +72,9 @@ builder.Services.AddValidatorsFromAssembly(typeof(distribuidora_saas.Application
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// CORS for the React dev server (Vite). Dev-only origins are intentionally hardcoded.
+builder.Services.AddCors(options => options.AddPolicy("FrontendDev", policy => policy.WithOrigins("http://localhost:5173", "https://localhost:5173").AllowAnyMethod().AllowAnyHeader().AllowCredentials()));
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -82,6 +85,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("FrontendDev");
 
 app.UseAuthentication();
 app.UseAuthorization();
