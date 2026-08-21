@@ -1,15 +1,24 @@
+import LogoutIcon from '@mui/icons-material/Logout'
+import MenuIcon from '@mui/icons-material/Menu'
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
 import Container from '@mui/material/Container'
+import IconButton from '@mui/material/IconButton'
 import Toolbar from '@mui/material/Toolbar'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import { useNavigate } from 'react-router-dom'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import type { Theme } from '@mui/material/styles'
+import { useState } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../features/auth/hooks/useAuth'
+import Sidebar, { ANCHO_BARRA_LATERAL } from './Sidebar'
 
 export default function AppLayout() {
   const { usuario, cerrarSesion } = useAuth()
   const navigate = useNavigate()
+  const enEscritorio = useMediaQuery((tema: Theme) => tema.breakpoints.up('md'))
+  const [menuAbierto, setMenuAbierto] = useState(false)
 
   const manejarCerrarSesion = () => {
     cerrarSesion()
@@ -17,25 +26,64 @@ export default function AppLayout() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh' }}>
-      <AppBar position="static">
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <Sidebar
+        abierta={enEscritorio || menuAbierto}
+        variante={enEscritorio ? 'permanent' : 'temporary'}
+        alCerrar={() => setMenuAbierto(false)}
+      />
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          ...(enEscritorio && {
+            width: `calc(100% - ${ANCHO_BARRA_LATERAL}px)`,
+            ml: `${ANCHO_BARRA_LATERAL}px`,
+          }),
+        }}
+      >
         <Toolbar>
+          {!enEscritorio && (
+            <IconButton
+              edge="start"
+              color="inherit"
+              aria-label="Abrir menú de navegación"
+              onClick={() => setMenuAbierto(true)}
+              sx={{ mr: 1 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Distribuidora SAAS
           </Typography>
           {usuario !== null && (
             <>
-              <Typography variant="body1" sx={{ mr: 2 }}>
-                {usuario.nombreCompleto}
-              </Typography>
-              <Button color="inherit" onClick={manejarCerrarSesion}>
-                Salir
-              </Button>
+              <Box
+                sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right', mr: 2 }}
+              >
+                <Typography variant="body2">{usuario.nombreCompleto}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {usuario.rol}
+                </Typography>
+              </Box>
+              <Tooltip title="Cerrar sesión">
+                <IconButton color="inherit" onClick={manejarCerrarSesion}>
+                  <LogoutIcon />
+                </IconButton>
+              </Tooltip>
             </>
           )}
         </Toolbar>
       </AppBar>
-      <Container component="main" sx={{ py: 4 }} />
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Toolbar />
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+          <Outlet />
+        </Container>
+      </Box>
     </Box>
   )
 }
