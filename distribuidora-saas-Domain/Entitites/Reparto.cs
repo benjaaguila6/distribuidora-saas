@@ -14,12 +14,16 @@ namespace distribuidora_saas_Domain.Entitites
         public DateTime FechaReparto { get; private set; }
         public DateTime? FechaInicio { get; private set; }
         public DateTime? FechaFinalizacion { get; private set; }
+        public decimal? CajaEntregada { get; private set; }
 
         private readonly List<RepartoStockInicial> _stockInicial = new();
         public IReadOnlyCollection<RepartoStockInicial> StockInicial => _stockInicial.AsReadOnly();
 
         private readonly List<RepartoEnvaseRetirado> _envasesRetirados = new();
         public IReadOnlyCollection<RepartoEnvaseRetirado> EnvasesRetirados => _envasesRetirados.AsReadOnly();
+
+        private readonly List<Gasto> _gastos = new();
+        public IReadOnlyCollection<Gasto> Gastos => _gastos.AsReadOnly();
 
         private Reparto() { }
 
@@ -100,11 +104,17 @@ namespace distribuidora_saas_Domain.Entitites
             FechaInicio = DateTime.UtcNow;
         }
 
-        public void FinalizarReparto()
+        public void FinalizarReparto(decimal cajaEntregada, IEnumerable<(ConceptoGasto Concepto, decimal Monto, string? Descripcion)> gastos)
         {
             if (Estado != EstadoReparto.EnCurso)
                 throw new InvalidOperationException("Solo se puede finalizar un reparto que esté en curso.");
 
+            foreach (var gasto in gastos)
+            {
+                _gastos.Add(new Gasto(Id, gasto.Concepto, gasto.Monto, gasto.Descripcion));
+            }
+
+            CajaEntregada = cajaEntregada;
             Estado = EstadoReparto.Finalizado;
             FechaFinalizacion = DateTime.UtcNow;
         }

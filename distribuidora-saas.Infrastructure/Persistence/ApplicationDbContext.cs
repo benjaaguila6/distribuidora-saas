@@ -36,6 +36,7 @@ namespace distribuidora_saas.Infrastructure.Persistence
         public DbSet<VentaPago> VentaPagos => Set<VentaPago>();
         public DbSet<RepartoEnvaseRetirado> RepartoEnvasesRetirados => Set<RepartoEnvaseRetirado>();
         public DbSet<MovimientoEnvase> MovimientosEnvases => Set<MovimientoEnvase>();
+        public DbSet<Gasto> Gastos => Set<Gasto>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
