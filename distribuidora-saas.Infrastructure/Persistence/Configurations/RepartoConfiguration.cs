@@ -50,6 +50,18 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
                 .FindNavigation(nameof(Reparto.EnvasesRetirados))!
                 .SetPropertyAccessMode(PropertyAccessMode.Field);
 
+            builder.HasMany(r => r.Gastos)
+                .WithOne()
+                .HasForeignKey(g => g.RepartoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Metadata
+                .FindNavigation(nameof(Reparto.Gastos))!
+                .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.Property(r => r.CajaEntregada)
+                .HasPrecision(12, 2);
+
             builder.HasIndex(r => r.RepartidorId)
                 .HasFilter("[Estado] = 'EnCurso'")
                 .IsUnique();

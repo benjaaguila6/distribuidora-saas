@@ -52,6 +52,120 @@ namespace distribuidora_saas.Api.Controllers
             return Ok(await ArmarResponseDto(reparto));
         }
 
+        [HttpGet("{id:guid}/cierre")]
+        public async Task<ActionResult<CierreRepartoResponseDto>> ObtenerCierre(Guid id)
+        {
+            var reparto = await _context.Repartos
+                .Include(r => r.StockInicial)
+                .Include(r => r.EnvasesRetirados)
+                .Include(r => r.Gastos)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (reparto is null) return NotFound();
+
+            var ventas = await _context.Ventas
+                .Include(v => v.Productos)
+                .Include(v => v.Pagos)
+                .Where(v => v.RepartoId == id)
+                .ToListAsync();
+
+            var productoIds = reparto.StockInicial.Select(s => s.ProductoId)
+                .Concat(reparto.EnvasesRetirados.Select(e => e.ProductoId))
+                .Concat(ventas.SelectMany(v => v.Productos.Select(p => p.ProductoId)))
+                .Distinct()
+                .ToList();
+
+            var productos = await _context.Productos
+                .Where(p => productoIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p);
+
+            var stockPorProducto = reparto.StockInicial
+                .Select(s => new StockCierreDto(
+                    s.ProductoId,
+                    productos.GetValueOrDefault(s.ProductoId)?.Nombre ?? "Producto no encontrado",
+                    s.CantidadInicial,
+                    s.CantidadInicial - s.CantidadRestante,
+                    s.CantidadRestante))
+                .ToList();
+
+            var esperadosPorProducto = ventas
+                .SelectMany(v => v.Productos)
+                .Where(p => p.TipoMovimiento == TipoMovimientoProducto.Entregado)
+                .Where(p => productos.TryGetValue(p.ProductoId, out var prod) && prod.TipoEnvase == TipoEnvase.Retornable)
+                .GroupBy(p => p.ProductoId)
+                .ToDictionary(g => g.Key, g => g.Sum(p => p.Cantidad));
+
+            var recibidosPorProducto = reparto.EnvasesRetirados
+                .GroupBy(e => e.ProductoId)
+                .ToDictionary(g => g.Key, g => g.Sum(e => e.CantidadRetirada));
+
+            var envasesPorProducto = esperadosPorProducto.Keys
+                .Concat(recibidosPorProducto.Keys)
+                .Distinct()
+                .Select(pid =>
+                {
+                    var cantidadEsperada = esperadosPorProducto.GetValueOrDefault(pid, 0);
+                    var cantidadRecibida = recibidosPorProducto.GetValueOrDefault(pid, 0);
+                    return new EnvaseCierreDto(
+                        pid,
+                        productos.GetValueOrDefault(pid)?.Nombre ?? "Producto no encontrado",
+                        cantidadEsperada,
+                        cantidadRecibida,
+                        cantidadEsperada - cantidadRecibida);
+                })
+                .ToList();
+
+            var cajaEsperada = ventas.Sum(v => v.DineroRecibido);
+
+            var dineroFiadoGenerado = ventas.Sum(v =>
+            {
+                var excedente = v.CalcularExcedenteOFaltante(pid => productos[pid].Precio);
+                return excedente < 0 ? Math.Abs(excedente) : 0m;
+            });
+
+            var totalTransferencias = ventas
+                .SelectMany(v => v.Pagos)
+                .Where(p => p.FormaPago == FormaPago.Transferencia)
+                .Sum(p => p.Monto);
+
+            var totalEfectivo = ventas
+                .SelectMany(v => v.Pagos)
+                .Where(p => p.FormaPago == FormaPago.Efectivo)
+                .Sum(p => p.Monto);
+
+            var totalQr = ventas
+                .SelectMany(v => v.Pagos)
+                .Where(p => p.FormaPago == FormaPago.Qr)
+                .Sum(p => p.Monto);
+
+            var gastos = reparto.Gastos
+                .Select(g => new GastoResponseDto(g.Concepto.ToString(), g.Monto, g.Descripcion))
+                .ToList();
+
+            var totalGastos = reparto.Gastos.Sum(g => g.Monto);
+
+            decimal? cajaEntregada = reparto.CajaEntregada;
+            decimal? diferenciaCaja = cajaEntregada.HasValue ? Math.Round(cajaEsperada - cajaEntregada.Value, 2) : null;
+
+            return Ok(new CierreRepartoResponseDto(
+                reparto.Id,
+                reparto.Estado.ToString(),
+                reparto.FechaReparto,
+                reparto.FechaFinalizacion,
+                stockPorProducto,
+                envasesPorProducto,
+                cajaEsperada,
+                cajaEntregada,
+                diferenciaCaja,
+                dineroFiadoGenerado,
+                totalTransferencias,
+                totalEfectivo,
+                totalQr,
+                gastos,
+                totalGastos
+            ));
+        }
+
         [HttpPost]
         [Authorize(Roles = "Administrador,Gerente")]
         public async Task<ActionResult<RepartoResponseDto>> Crear(
@@ -137,14 +251,17 @@ namespace distribuidora_saas.Api.Controllers
 
         [HttpPatch("{id:guid}/finalizar")]
         [Authorize(Roles = "Administrador,Gerente")]
-        public async Task<ActionResult> Finalizar(Guid id)
+        public async Task<ActionResult> Finalizar(Guid id, [FromBody] FinalizarRepartoDto dto)
         {
-            var reparto = await _context.Repartos.FindAsync(id);
+            var reparto = await _context.Repartos
+                .Include(r => r.Gastos)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
             if (reparto is null) return NotFound();
 
             try
             {
-                reparto.FinalizarReparto();
+                reparto.FinalizarReparto(dto.CajaEntregada, (dto.Gastos ?? Enumerable.Empty<GastoDto>()).Select(g => (g.Concepto, g.Monto, g.Descripcion)));
             }
             catch (InvalidOperationException ex)
             {
