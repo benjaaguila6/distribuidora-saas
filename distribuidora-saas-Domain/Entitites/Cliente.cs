@@ -40,6 +40,21 @@ namespace distribuidora_saas_Domain.Entitites
             SaldoEnvasesActual = 0;
         }
 
+        public void ActualizarDatosBasicos(string nombre, string direccion)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                throw new ArgumentException("El nombre del cliente es obligatorio.", nameof(nombre));
+            }
+            if (string.IsNullOrWhiteSpace(direccion))
+            {
+                throw new ArgumentException("La dirección del cliente es obligatoria.", nameof(direccion));
+            }
+
+            Nombre = nombre;
+            Direccion = direccion;
+        }
+
         public void ActualizarDatosContacto(string? telefono, decimal? latitud, decimal? longitud, string? observaciones)
         {
             Telefono = telefono;
