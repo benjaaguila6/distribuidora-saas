@@ -98,6 +98,19 @@ namespace distribuidora_saas.Api.Controllers
             return NoContent();
         }
 
+        [HttpPut("{id:guid}/datos-basicos")]
+        [Authorize(Roles = "Administrador,Gerente")]
+        public async Task<ActionResult> ActualizarDatosBasicos(Guid id, [FromBody] ActualizarDatosBasicosClienteDto dto)
+        {
+            var cliente = await _context.Clientes.FindAsync(id);
+            if (cliente is null) return NotFound();
+
+            cliente.ActualizarDatosBasicos(dto.Nombre, dto.Direccion);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         [HttpPatch("{id:guid}/desactivar")]
         [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> Desactivar(Guid id)
