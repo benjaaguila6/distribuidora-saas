@@ -17,25 +17,28 @@ import { useAuth } from '../../features/auth/hooks/useAuth'
 export const ANCHO_BARRA_LATERAL = 260
 
 const ROL_ADMINISTRADOR = 'Administrador'
+const ROL_REPARTIDOR = 'Repartidor'
 
 interface ItemNavegacion {
   texto: string
   ruta: string
   icono: ReactNode
   soloAdministrador?: boolean
+  ocultoParaRepartidor?: boolean
 }
 
 const ITEMS_NAVEGACION: ItemNavegacion[] = [
-  { texto: 'Inicio', ruta: '/', icono: <DashboardIcon /> },
-  { texto: 'Clientes', ruta: '/clientes', icono: <PeopleIcon /> },
-  { texto: 'Productos', ruta: '/productos', icono: <Inventory2Icon /> },
-  { texto: 'Recorridos', ruta: '/recorridos', icono: <RouteIcon /> },
+  { texto: 'Inicio', ruta: '/', icono: <DashboardIcon />, ocultoParaRepartidor: true },
+  { texto: 'Clientes', ruta: '/clientes', icono: <PeopleIcon />, ocultoParaRepartidor: true },
+  { texto: 'Productos', ruta: '/productos', icono: <Inventory2Icon />, ocultoParaRepartidor: true },
+  { texto: 'Recorridos', ruta: '/recorridos', icono: <RouteIcon />, ocultoParaRepartidor: true },
   { texto: 'Repartos', ruta: '/repartos', icono: <LocalShippingIcon /> },
   {
     texto: 'Usuarios',
     ruta: '/usuarios',
     icono: <ManageAccountsIcon />,
     soloAdministrador: true,
+    ocultoParaRepartidor: true,
   },
 ]
 
@@ -53,8 +56,11 @@ export default function Sidebar({ abierta, variante, alCerrar }: SidebarProps) {
   const esRutaActiva = (ruta: string) =>
     ruta === '/' ? location.pathname === '/' : location.pathname.startsWith(ruta)
 
-  const esItemVisible = (item: ItemNavegacion) =>
-    !item.soloAdministrador || usuario?.rol === ROL_ADMINISTRADOR
+  // El Repartidor solo ve los items que no estén marcados como ocultos para su rol.
+  const esItemVisible = (item: ItemNavegacion) => {
+    if (usuario?.rol === ROL_REPARTIDOR) return !item.ocultoParaRepartidor
+    return !item.soloAdministrador || usuario?.rol === ROL_ADMINISTRADOR
+  }
 
   return (
     <Drawer

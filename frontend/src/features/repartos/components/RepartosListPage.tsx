@@ -2,6 +2,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import CircularProgress from '@mui/material/CircularProgress'
 import Paper from '@mui/material/Paper'
 import Skeleton from '@mui/material/Skeleton'
 import Table from '@mui/material/Table'
@@ -14,7 +15,7 @@ import TableRow from '@mui/material/TableRow'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useRepartosQuery } from '../hooks/useRepartosQuery'
 import ChipEstadoReparto from './ChipEstadoReparto'
@@ -23,6 +24,7 @@ const OPCIONES_TAMANO_PAGINA = [10, 25, 50]
 const CANTIDAD_FILAS_SKELETON = 8
 const ROL_ADMINISTRADOR = 'Administrador'
 const ROL_GERENTE = 'Gerente'
+const ROL_REPARTIDOR = 'Repartidor'
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' })
 
@@ -39,17 +41,55 @@ function recortarIdentificador(id: string): string {
 export default function RepartosListPage() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
+  const esRepartidor = usuario?.rol === ROL_REPARTIDOR
   const seMuestraRepartidor =
     usuario?.rol === ROL_ADMINISTRADOR || usuario?.rol === ROL_GERENTE
 
   const [pagina, setPagina] = useState(1)
   const [tamanoPagina, setTamanoPagina] = useState(OPCIONES_TAMANO_PAGINA[0])
 
-  const consulta = useRepartosQuery(pagina, tamanoPagina)
+  // El Repartidor solo consulta la primera página de 1 item: el backend ya
+  // devuelve únicamente los repartos EnCurso asignados a ese repartidor.
+  const consulta = useRepartosQuery(esRepartidor ? 1 : pagina, esRepartidor ? 1 : tamanoPagina)
   const repartos = consulta.data?.items ?? []
   const total = consulta.data?.total ?? 0
   const cargando = consulta.isLoading
   const cantidadColumnas = seMuestraRepartidor ? 5 : 4
+
+  if (esRepartidor) {
+    if (cargando) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress />
+        </Box>
+      )
+    }
+
+    if (consulta.isError) {
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="h5" component="h1">
+            Repartos
+          </Typography>
+          <Alert severity="error">Ocurrió un error al cargar los repartos.</Alert>
+        </Box>
+      )
+    }
+
+    const repartoEnCurso = repartos[0]
+    if (repartoEnCurso !== undefined) {
+      return <Navigate to={`/repartos/${repartoEnCurso.id}`} replace />
+    }
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Typography variant="h5" component="h1">
+          Repartos
+        </Typography>
+        <Alert severity="info">No tenés ningún reparto en curso.</Alert>
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
