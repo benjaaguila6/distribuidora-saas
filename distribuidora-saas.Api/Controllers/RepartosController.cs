@@ -31,7 +31,7 @@ namespace distribuidora_saas.Api.Controllers
             var query = _context.Repartos.AsQueryable();
 
             if (User.IsInRole("Repartidor") && _currentUser.UsuarioId is Guid repartidorId)
-                query = query.Where(r => r.RepartidorId == repartidorId);
+                query = query.Where(r => r.RepartidorId == repartidorId && r.Estado == EstadoReparto.EnCurso);
 
             var total = await query.CountAsync();
 
