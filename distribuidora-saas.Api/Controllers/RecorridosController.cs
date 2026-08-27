@@ -14,15 +14,20 @@ namespace distribuidora_saas.Api.Controllers
     public class RecorridosController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly Application.Common.Interfaces.ICurrentUserService _currentUser;
 
-        public RecorridosController(ApplicationDbContext context)
+        public RecorridosController(ApplicationDbContext context, Application.Common.Interfaces.ICurrentUserService currentUser)
         {
             _context = context;
+            _currentUser = currentUser;
         }
 
         [HttpGet]
         public async Task<ActionResult> ObtenerTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
+            if (User.IsInRole("Repartidor"))
+                return StatusCode(StatusCodes.Status403Forbidden, "El rol Repartidor no tiene acceso al listado de recorridos.");
+
             var query = _context.Recorridos.AsQueryable();
             var total = await query.CountAsync();
 
@@ -45,6 +50,15 @@ namespace distribuidora_saas.Api.Controllers
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (recorrido is null) return NotFound();
+
+            if (User.IsInRole("Repartidor"))
+            {
+                var tieneReparto = await _context.Repartos
+                    .AnyAsync(r => r.RecorridoId == id && r.RepartidorId == _currentUser.UsuarioId);
+
+                if (!tieneReparto)
+                    return StatusCode(StatusCodes.Status403Forbidden, "No tiene acceso a este recorrido.");
+            }
 
             return Ok(await ArmarResponseDto(recorrido));
         }

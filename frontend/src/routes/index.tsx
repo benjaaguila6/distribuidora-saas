@@ -1,5 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import ClientesListPage from '../features/clientes/components/ClientesListPage'
+import RepartoDetallePage from '../features/repartos/components/RepartoDetallePage'
+import RepartosListPage from '../features/repartos/components/RepartosListPage'
 import LoginPage from '../features/auth/components/LoginPage'
 import RutaProtegida from '../features/auth/components/RutaProtegida'
 import AppLayout from '../shared/components/AppLayout'
@@ -21,7 +23,8 @@ export const router = createBrowserRouter([
           { path: 'clientes', element: <ClientesListPage /> },
           { path: 'productos', element: <PaginaProximamente titulo="Productos" /> },
           { path: 'recorridos', element: <PaginaProximamente titulo="Recorridos" /> },
-          { path: 'repartos', element: <PaginaProximamente titulo="Repartos" /> },
+          { path: 'repartos', element: <RepartosListPage /> },
+          { path: 'repartos/:id', element: <RepartoDetallePage /> },
           { path: 'usuarios', element: <PaginaProximamente titulo="Usuarios" /> },
         ],
       },
