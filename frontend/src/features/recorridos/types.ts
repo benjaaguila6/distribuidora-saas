@@ -10,6 +10,7 @@ export type DiaSemana =
 export interface RecorridoCliente {
   clienteId: string
   nombre: string
+  direccion: string
   orden: number
 }
 

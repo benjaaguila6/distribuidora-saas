@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
@@ -32,9 +33,10 @@ interface ItemOrdenableProps {
   cliente: RecorridoCliente
   puedeEditar: boolean
   onQuitar: (cliente: RecorridoCliente) => void
+  onVerDetalle: (cliente: RecorridoCliente) => void
 }
 
-function ItemClienteOrdenable({ cliente, puedeEditar, onQuitar }: ItemOrdenableProps) {
+function ItemClienteOrdenable({ cliente, puedeEditar, onQuitar, onVerDetalle }: ItemOrdenableProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: cliente.clienteId,
   })
@@ -47,6 +49,11 @@ function ItemClienteOrdenable({ cliente, puedeEditar, onQuitar }: ItemOrdenableP
   const manejarEliminacion = (evento: MouseEvent) => {
     evento.stopPropagation()
     onQuitar(cliente)
+  }
+
+  const manejarVerDetalle = (evento: MouseEvent) => {
+    evento.stopPropagation()
+    onVerDetalle(cliente)
   }
 
   return (
@@ -66,9 +73,23 @@ function ItemClienteOrdenable({ cliente, puedeEditar, onQuitar }: ItemOrdenableP
       <Typography variant="body2" color="text.secondary" sx={{ width: 28, textAlign: 'center' }}>
         {cliente.orden}
       </Typography>
-      <Typography variant="body2" sx={{ flexGrow: 1 }}>
-        {cliente.nombre}
-      </Typography>
+      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Typography variant="body2" noWrap>
+          {cliente.nombre}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" noWrap>
+          {cliente.direccion}
+        </Typography>
+      </Box>
+      <Tooltip title="Ver detalle del cliente">
+        <IconButton
+          size="small"
+          aria-label={`Ver detalle de ${cliente.nombre}`}
+          onClick={manejarVerDetalle}
+        >
+          <VisibilityOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
       {puedeEditar && (
         <Tooltip title="Eliminar del recorrido">
           <IconButton
@@ -96,6 +117,7 @@ interface ListaClientesReordenableProps {
   clientes: RecorridoCliente[]
   puedeEditar: boolean
   onQuitar: (cliente: RecorridoCliente) => void
+  onVerDetalle: (cliente: RecorridoCliente) => void
 }
 
 export default function ListaClientesReordenable({
@@ -103,6 +125,7 @@ export default function ListaClientesReordenable({
   clientes,
   puedeEditar,
   onQuitar,
+  onVerDetalle,
 }: ListaClientesReordenableProps) {
   const [items, setItems] = useState<RecorridoCliente[]>(clientes)
   const mutacionReordenar = useReordenarClientesRecorridoMutation()
@@ -150,7 +173,23 @@ export default function ListaClientesReordenable({
             <Typography variant="body2" color="text.secondary" sx={{ width: 28, textAlign: 'center' }}>
               {cliente.orden}
             </Typography>
-            <Typography variant="body2">{cliente.nombre}</Typography>
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant="body2" noWrap>
+                {cliente.nombre}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {cliente.direccion}
+              </Typography>
+            </Box>
+            <Tooltip title="Ver detalle del cliente">
+              <IconButton
+                size="small"
+                aria-label={`Ver detalle de ${cliente.nombre}`}
+                onClick={() => onVerDetalle(cliente)}
+              >
+                <VisibilityOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Paper>
         ))}
       </Box>
@@ -181,6 +220,7 @@ export default function ListaClientesReordenable({
                   cliente={cliente}
                   puedeEditar={puedeEditar}
                   onQuitar={onQuitar}
+                  onVerDetalle={onVerDetalle}
                 />
               ))}
             </Box>

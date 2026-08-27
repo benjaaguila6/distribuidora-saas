@@ -15,6 +15,7 @@ import { useQuitarClienteRecorridoMutation } from '../hooks/useQuitarClienteReco
 import type { RecorridoCliente } from '../types'
 import ListaClientesReordenable from './ListaClientesReordenable'
 import AgregarClienteRecorridoDialog from './AgregarClienteRecorridoDialog'
+import DetalleClienteRecorridoDialog from './DetalleClienteRecorridoDialog'
 import DialogoConfirmacion from '../../../shared/components/DialogoConfirmacion'
 import { obtenerMensajeErrorApi } from '../../../shared/lib/obtenerMensajeErrorApi'
 
@@ -42,6 +43,7 @@ export default function RecorridoDetallePage() {
 
   const [dialogoAgregarAbierto, setDialogoAgregarAbierto] = useState(false)
   const [clienteAQuitar, setClienteAQuitar] = useState<RecorridoCliente | null>(null)
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<RecorridoCliente | null>(null)
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
 
   const confirmarQuitar = async () => {
@@ -159,6 +161,7 @@ export default function RecorridoDetallePage() {
             clientes={recorrido.clientes}
             puedeEditar={puedeEditar}
             onQuitar={setClienteAQuitar}
+            onVerDetalle={setClienteSeleccionado}
           />
         )}
       </Paper>
@@ -168,6 +171,12 @@ export default function RecorridoDetallePage() {
         clientesYaAgregados={recorrido.clientes.map((cliente) => cliente.clienteId)}
         open={dialogoAgregarAbierto}
         onClose={() => setDialogoAgregarAbierto(false)}
+      />
+
+      <DetalleClienteRecorridoDialog
+        clienteId={clienteSeleccionado?.clienteId ?? ''}
+        open={clienteSeleccionado !== null}
+        onClose={() => setClienteSeleccionado(null)}
       />
 
       <DialogoConfirmacion
