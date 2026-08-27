@@ -1,4 +1,5 @@
 import VisibilityIcon from '@mui/icons-material/Visibility'
+import AddIcon from '@mui/icons-material/Add'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -12,13 +13,13 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
-import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useRepartosQuery } from '../hooks/useRepartosQuery'
 import ChipEstadoReparto from './ChipEstadoReparto'
+import CrearRepartoDialog from './CrearRepartoDialog'
 
 const OPCIONES_TAMANO_PAGINA = [10, 25, 50]
 const CANTIDAD_FILAS_SKELETON = 8
@@ -34,19 +35,17 @@ function formatearFecha(valor: string): string {
   return formatoFecha.format(instante)
 }
 
-function recortarIdentificador(id: string): string {
-  return id.length > 8 ? `${id.slice(0, 8)}…` : id
-}
-
 export default function RepartosListPage() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const esRepartidor = usuario?.rol === ROL_REPARTIDOR
   const seMuestraRepartidor =
     usuario?.rol === ROL_ADMINISTRADOR || usuario?.rol === ROL_GERENTE
+  const esGestion = seMuestraRepartidor
 
   const [pagina, setPagina] = useState(1)
   const [tamanoPagina, setTamanoPagina] = useState(OPCIONES_TAMANO_PAGINA[0])
+  const [dialogoNuevoAbierto, setDialogoNuevoAbierto] = useState(false)
 
   // El Repartidor solo consulta la primera página de 1 item: el backend ya
   // devuelve únicamente los repartos EnCurso asignados a ese repartidor.
@@ -105,6 +104,15 @@ export default function RepartosListPage() {
         <Typography variant="h5" component="h1">
           Repartos
         </Typography>
+        {esGestion && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setDialogoNuevoAbierto(true)}
+          >
+            Nuevo reparto
+          </Button>
+        )}
       </Box>
 
       <Paper>
@@ -149,21 +157,13 @@ export default function RepartosListPage() {
               ) : (
                 repartos.map((reparto) => (
                   <TableRow key={reparto.id} hover>
-                    <TableCell>
-                      <Tooltip title={`ID del recorrido: ${reparto.recorridoId}`}>
-                        <span>{recortarIdentificador(reparto.recorridoId)}</span>
-                      </Tooltip>
-                    </TableCell>
+                    <TableCell>{reparto.nombreRecorrido}</TableCell>
                     <TableCell>{formatearFecha(reparto.fechaReparto)}</TableCell>
                     <TableCell>
                       <ChipEstadoReparto estado={reparto.estado} />
                     </TableCell>
                     {seMuestraRepartidor && (
-                      <TableCell>
-                        <Tooltip title={`ID del repartidor: ${reparto.repartidorId}`}>
-                          <span>{recortarIdentificador(reparto.repartidorId)}</span>
-                        </Tooltip>
-                      </TableCell>
+                      <TableCell>{reparto.nombreRepartidor}</TableCell>
                     )}
                     <TableCell align="right">
                       <Button
@@ -195,6 +195,11 @@ export default function RepartosListPage() {
           labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
         />
       </Paper>
+
+      <CrearRepartoDialog
+        open={dialogoNuevoAbierto}
+        onClose={() => setDialogoNuevoAbierto(false)}
+      />
     </Box>
   )
 }
