@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "gentle-orchestrator": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-init": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-explore": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-propose": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-spec": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-design": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-tasks": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-apply": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-verify": {
+      "model": "opencode/big-pickle"
+    },
+    "sdd-archive": {
+      "model": "opencode/big-pickle"
+    }
+  }
+}
