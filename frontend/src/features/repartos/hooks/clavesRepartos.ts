@@ -1,0 +1,7 @@
+export const clavesRepartos = {
+  raiz: ['repartos'] as const,
+  lista: (page: number, pageSize: number) =>
+    [...clavesRepartos.raiz, 'lista', { page, pageSize }] as const,
+  detalle: (id: string) => [...clavesRepartos.raiz, 'detalle', id] as const,
+  recorrido: (id: string) => [...clavesRepartos.raiz, 'recorrido', id] as const,
+}

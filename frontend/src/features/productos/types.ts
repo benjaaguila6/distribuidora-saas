@@ -1,6 +1,6 @@
 export type TipoEnvaseProducto = 'Retornable' | 'NoRetornable' | 'SinEnvase'
 
-export interface ProductoResponse {
+export interface Producto {
   id: string
   nombre: string
   precio: number
@@ -9,6 +9,8 @@ export interface ProductoResponse {
   activo: boolean
   fechaCreacion: string
 }
+
+export type ProductoResponse = Producto
 
 export interface CrearProductoInput {
   nombre: string
