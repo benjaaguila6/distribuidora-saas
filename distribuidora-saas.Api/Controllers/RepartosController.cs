@@ -17,16 +17,22 @@ namespace distribuidora_saas.Api.Controllers
     public class RepartosController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUser;
 
-        public RepartosController(ApplicationDbContext context)
+        public RepartosController(ApplicationDbContext context, ICurrentUserService currentUser)
         {
             _context = context;
+            _currentUser = currentUser;
         }
 
         [HttpGet]
         public async Task<ActionResult> ObtenerTodos([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             var query = _context.Repartos.AsQueryable();
+
+            if (User.IsInRole("Repartidor") && _currentUser.UsuarioId is Guid repartidorId)
+                query = query.Where(r => r.RepartidorId == repartidorId);
+
             var total = await query.CountAsync();
 
             var repartos = await query
@@ -49,6 +55,9 @@ namespace distribuidora_saas.Api.Controllers
 
             if (reparto is null) return NotFound();
 
+            if (User.IsInRole("Repartidor") && reparto.RepartidorId != _currentUser.UsuarioId)
+                return StatusCode(StatusCodes.Status403Forbidden, "No tiene acceso a este reparto.");
+
             return Ok(await ArmarResponseDto(reparto));
         }
 
@@ -62,6 +71,9 @@ namespace distribuidora_saas.Api.Controllers
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (reparto is null) return NotFound();
+
+            if (User.IsInRole("Repartidor") && reparto.RepartidorId != _currentUser.UsuarioId)
+                return StatusCode(StatusCodes.Status403Forbidden, "No tiene acceso a este reparto.");
 
             var ventas = await _context.Ventas
                 .Include(v => v.Productos)
