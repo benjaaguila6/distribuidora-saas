@@ -39,7 +39,22 @@ namespace distribuidora_saas.Api.Controllers
                 .OrderByDescending(r => r.FechaReparto)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(r => new { r.Id, r.RecorridoId, r.RepartidorId, Estado = r.Estado.ToString(), r.FechaReparto })
+                .Select(r => new
+                {
+                    r.Id,
+                    r.RecorridoId,
+                    NombreRecorrido = _context.Recorridos
+                        .Where(x => x.Id == r.RecorridoId)
+                        .Select(x => x.Nombre)
+                        .FirstOrDefault() ?? "Recorrido no encontrado",
+                    r.RepartidorId,
+                    NombreRepartidor = _context.Usuarios
+                        .Where(x => x.Id == r.RepartidorId)
+                        .Select(x => x.NombreCompleto)
+                        .FirstOrDefault() ?? "Repartidor no encontrado",
+                    Estado = r.Estado.ToString(),
+                    r.FechaReparto,
+                })
                 .ToListAsync();
 
             return Ok(new { total, page, pageSize, items = repartos });
