@@ -5,11 +5,14 @@ import SearchIcon from '@mui/icons-material/Search'
 import InventoryIcon from '@mui/icons-material/Inventory'
 import FactCheckIcon from '@mui/icons-material/FactCheck'
 import CancelIcon from '@mui/icons-material/Cancel'
+import HistoryIcon from '@mui/icons-material/History'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
@@ -40,10 +43,13 @@ import { clavesRepartos } from '../hooks/clavesRepartos'
 import { useCancelarRepartoMutation } from '../hooks/useCancelarRepartoMutation'
 import { useIniciarRepartoMutation } from '../hooks/useIniciarRepartoMutation'
 import { useRecorridoQuery } from '../hooks/useRecorridoQuery'
+import { useCierreRepartoQuery } from '../hooks/useCierreRepartoQuery'
 import { useRepartoQuery } from '../hooks/useRepartoQuery'
 import AgregarStockInicialDialog from './AgregarStockInicialDialog'
 import ChipEstadoReparto from './ChipEstadoReparto'
 import DialogoCierreReparto from './DialogoCierreReparto'
+import HistorialVentasClienteDialog from './HistorialVentasClienteDialog'
+import ResumenFinalizacionReparto from './ResumenFinalizacionReparto'
 
 const DEMORA_BUSQUEDA_MS = 400
 const CANTIDAD_FILAS_SKELETON_VENTAS = 5
@@ -105,6 +111,8 @@ export default function RepartoDetallePage() {
   const reparto = consultaReparto.data
   const consultaRecorrido = useRecorridoQuery(reparto?.recorridoId ?? '')
   const consultaVentas = useVentasDeRepartoQuery(repartoId)
+  const esFinalizado = reparto?.estado === 'Finalizado'
+  const consultaCierre = useCierreRepartoQuery(repartoId, esFinalizado)
 
   const esGestion = usuario?.rol === ROL_ADMINISTRADOR || usuario?.rol === ROL_GERENTE
   const mutacionIniciar = useIniciarRepartoMutation()
@@ -114,6 +122,11 @@ export default function RepartoDetallePage() {
   const [indiceAperturaVenta, setIndiceAperturaVenta] = useState(0)
   const [dialogoStockAbierto, setDialogoStockAbierto] = useState(false)
   const [dialogoCierreAbierto, setDialogoCierreAbierto] = useState(false)
+  const [dialogoHistorialCliente, setDialogoHistorialCliente] = useState<{
+    clienteId: string
+    clienteNombre: string
+    abierto: boolean
+  } | null>(null)
   const [confirmarCancelar, setConfirmarCancelar] = useState(false)
   const [errorGestion, setErrorGestion] = useState<string | null>(null)
   const [clienteParaVenta, setClienteParaVenta] = useState<ClienteSeleccionado | null>(null)
@@ -322,18 +335,47 @@ export default function RepartoDetallePage() {
         ) : (
           <List dense>
             {consultaRecorrido.data.clientes.map((cliente) => (
-              <ListItemButton
+              <ListItem
                 key={cliente.clienteId}
-                disabled={!puedeRegistrarVentas}
-                onClick={() => abrirVenta({ id: cliente.clienteId, nombre: cliente.nombre })}
+                disableGutters
+                secondaryAction={
+                  <IconButton
+                    aria-label="Ver historial"
+                    title="Ver historial de ventas"
+                    edge="end"
+                    onClick={() =>
+                      setDialogoHistorialCliente({
+                        clienteId: cliente.clienteId,
+                        clienteNombre: cliente.nombreCliente,
+                        abierto: true,
+                      })
+                    }
+                  >
+                    <HistoryIcon />
+                  </IconButton>
+                }
               >
-                <ListItemIcon>
-                  <Typography variant="body2" color="text.secondary">
-                    {cliente.orden}
-                  </Typography>
-                </ListItemIcon>
-                <ListItemText primary={cliente.nombre} />
-              </ListItemButton>
+                <ListItemButton
+                  disabled={!puedeRegistrarVentas}
+                  onClick={() => abrirVenta({ id: cliente.clienteId, nombre: cliente.nombreCliente })}
+                >
+                  <ListItemIcon>
+                    <Typography variant="body2" color="text.secondary">
+                      {cliente.orden}
+                    </Typography>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={cliente.nombreCliente}
+                    secondary={
+                      <>
+                        {cliente.direccion} · Deuda: {formatoMoneda.format(cliente.saldoDeudaActual)} ·
+                        Envases: {cliente.saldoEnvasesActual}
+                      </>
+                    }
+                    sx={{ pr: 2 }}
+                  />
+                </ListItemButton>
+              </ListItem>
             ))}
           </List>
         )}
@@ -455,6 +497,18 @@ export default function RepartoDetallePage() {
         </TableContainer>
       </Paper>
 
+      {esFinalizado &&
+        (consultaCierre.isLoading ? (
+          <Paper sx={{ p: 2 }}>
+            <Skeleton height={40} />
+            <Skeleton height={160} />
+          </Paper>
+        ) : consultaCierre.isError ? (
+          <Alert severity="error">No se pudo cargar el resumen de finalización del reparto.</Alert>
+        ) : consultaCierre.data === undefined ? null : (
+          <ResumenFinalizacionReparto cierre={consultaCierre.data} />
+        ))}
+
       <RegistrarVentaDialog
         key={indiceAperturaVenta}
         open={dialogoVentaAbierto}
@@ -484,6 +538,13 @@ export default function RepartoDetallePage() {
         onFinalizado={() => {
           setDialogoCierreAbierto(false)
         }}
+      />
+
+      <HistorialVentasClienteDialog
+        clienteId={dialogoHistorialCliente?.clienteId ?? ''}
+        clienteNombre={dialogoHistorialCliente?.clienteNombre ?? ''}
+        open={dialogoHistorialCliente?.abierto ?? false}
+        onClose={() => setDialogoHistorialCliente(null)}
       />
 
       <DialogoConfirmacion

@@ -4,5 +4,5 @@ using System.Text;
 
 namespace distribuidora_saas.Application.Recorridos.DTOs
 {
-    public record RecorridoClienteResponseDto(Guid ClienteId, string NombreCliente, string Direccion, int Orden);
+    public record RecorridoClienteResponseDto(Guid ClienteId, string NombreCliente, string Direccion, decimal SaldoDeudaActual, int SaldoEnvasesActual, int Orden);
 }

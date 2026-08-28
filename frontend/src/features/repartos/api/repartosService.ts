@@ -8,6 +8,7 @@ import type {
   Recorrido,
   RepartoDetalle,
   RepartoEnLista,
+  VentaHistorialCliente,
 } from '../types'
 
 const URL_BASE = '/api/repartos'
@@ -58,5 +59,10 @@ export async function finalizarReparto(id: string, dto: FinalizarRepartoInput): 
 
 export async function obtenerCierre(id: string): Promise<CierreReparto> {
   const { data } = await apiClient.get<CierreReparto>(`${URL_BASE}/${id}/cierre`)
+  return data
+}
+
+export async function obtenerHistorialVentasCliente(clienteId: string): Promise<VentaHistorialCliente[]> {
+  const { data } = await apiClient.get<VentaHistorialCliente[]>(`/api/clientes/${clienteId}/ventas`)
   return data
 }

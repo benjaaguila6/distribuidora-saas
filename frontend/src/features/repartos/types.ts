@@ -39,8 +39,24 @@ export interface RepartoDetalle {
 
 export interface RecorridoCliente {
   clienteId: string
-  nombre: string
+  nombreCliente: string
+  direccion: string
+  saldoDeudaActual: number
+  saldoEnvasesActual: number
   orden: number
+}
+
+export interface VentaHistorialCliente {
+  ventaId: string
+  repartoId: string
+  fechaVenta: string
+  dineroRecibido: number
+  valorTotalEntregado: number
+  deudaGenerada: number
+  envasesPrestados: number
+  envasesDevueltos: number
+  productos: { productoId: string; nombreProducto: string; tipoMovimiento: string; cantidad: number }[]
+  pagos: { formaPago: string; monto: number; importeEntregadoPorCliente: number | null; vuelto: number | null }[]
 }
 
 export interface Recorrido {
