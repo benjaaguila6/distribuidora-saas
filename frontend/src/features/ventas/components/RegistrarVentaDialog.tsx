@@ -240,6 +240,7 @@ export default function RegistrarVentaDialog({
     if (hayErrores) {
       setErroresProductos(erroresProductosCalculados)
       setErroresPagos(erroresPagosCalculados)
+      setErrorServidor('Hay campos sin completar o inválidos. Revisá los campos marcados en rojo.')
       return
     }
 

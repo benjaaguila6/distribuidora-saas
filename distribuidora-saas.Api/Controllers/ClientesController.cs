@@ -1,6 +1,8 @@
 ﻿using distribuidora_saas.Application.Clientes.DTOs;
+using distribuidora_saas.Application.Ventas.DTOs;
 using distribuidora_saas.Infrastructure.Persistence;
 using distribuidora_saas_Domain.Entitites;
+using distribuidora_saas_Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -61,6 +63,85 @@ namespace distribuidora_saas.Api.Controllers
                 cliente.Latitud, cliente.Longitud, cliente.Observaciones,
                 cliente.SaldoDeudaActual, cliente.SaldoEnvasesActual,
                 cliente.Estado.ToString(), cliente.FechaCreacion));
+        }
+
+        [HttpGet("{id:guid}/ventas")]
+        public async Task<ActionResult<List<HistorialVentaClienteDto>>> ObtenerHistorialVentas(Guid id)
+        {
+            var clienteExiste = await _context.Clientes.AnyAsync(c => c.Id == id);
+            if (!clienteExiste) return NotFound();
+
+            var ventas = await _context.Ventas
+                .Include(v => v.Productos)
+                .Include(v => v.Pagos)
+                .Where(v => v.ClienteId == id)
+                .OrderByDescending(v => v.FechaVenta)
+                .ToListAsync();
+
+            var productoIds = ventas
+                .SelectMany(v => v.Productos.Select(p => p.ProductoId))
+                .Distinct()
+                .ToList();
+
+            var productosPorId = await _context.Productos
+                .Where(p => productoIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id);
+            var movimientosEnvases = await _context.MovimientosEnvases
+                .Where(m => m.ClienteId == id)
+                .ToListAsync();
+
+            var envasesPorVenta = movimientosEnvases
+                .GroupBy(m => m.VentaId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new
+                    {
+                        Prestados = g
+                            .Where(m => m.TipoMovimiento == TipoMovimientoEnvase.Prestado)
+                            .Sum(m => m.Cantidad),
+                        Devueltos = g
+                            .Where(m => m.TipoMovimiento == TipoMovimientoEnvase.Devuelto)
+                            .Sum(m => m.Cantidad),
+                    });
+
+            var resultado = new List<HistorialVentaClienteDto>();
+
+            foreach (var venta in ventas)
+            {
+                decimal obtenerPrecio(Guid pid) => productosPorId[pid].Precio;
+
+                var productosDto = venta.Productos
+                    .Select(p => new VentaProductoResponseDto(
+                        p.ProductoId,
+                        productosPorId.GetValueOrDefault(p.ProductoId)?.Nombre ?? "Producto no encontrado",
+                        p.TipoMovimiento.ToString(),
+                        p.Cantidad))
+                    .ToList();
+
+                var pagosDto = venta.Pagos
+                    .Select(p => new VentaPagoResponseDto(
+                        p.FormaPago.ToString(),
+                        p.Monto,
+                        p.ImporteEntregadoPorCliente,
+                        p.Vuelto))
+                    .ToList();
+
+                var envases = envasesPorVenta.GetValueOrDefault(venta.Id);
+
+                resultado.Add(new HistorialVentaClienteDto(
+                    venta.Id,
+                    venta.RepartoId,
+                    venta.FechaVenta,
+                    venta.DineroRecibido,
+                    venta.CalcularValorTotalEntregado(obtenerPrecio),
+                    venta.CalcularDeudaGenerada(obtenerPrecio),
+                    envases?.Prestados ?? 0,
+                    envases?.Devueltos ?? 0,
+                    productosDto,
+                    pagosDto));
+            }
+
+            return Ok(resultado);
         }
 
         [HttpPost]

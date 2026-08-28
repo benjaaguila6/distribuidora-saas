@@ -182,7 +182,7 @@ namespace distribuidora_saas.Api.Controllers
 
             var datosClientes = await _context.Clientes
                 .Where(c => clienteIds.Contains(c.Id))
-                .ToDictionaryAsync(c => c.Id, c => new { c.Nombre, c.Direccion });
+                .ToDictionaryAsync(c => c.Id, c => new { c.Nombre, c.Direccion, c.SaldoDeudaActual, c.SaldoEnvasesActual });
 
             var clientesDto = recorrido.Clientes
                 .OrderBy(rc => rc.Orden)
@@ -191,7 +191,9 @@ namespace distribuidora_saas.Api.Controllers
                     var datos = datosClientes.GetValueOrDefault(rc.ClienteId);
                     var nombre = datos?.Nombre ?? "Cliente no encontrado";
                     var direccion = datos?.Direccion ?? string.Empty;
-                    return new RecorridoClienteResponseDto(rc.ClienteId, nombre, direccion, rc.Orden);
+                    var saldoDeuda = datos?.SaldoDeudaActual ?? 0;
+                    var saldoEnvases = datos?.SaldoEnvasesActual ?? 0;
+                    return new RecorridoClienteResponseDto(rc.ClienteId, nombre, direccion, saldoDeuda, saldoEnvases, rc.Orden);
                 })
                 .ToList();
 

@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +67,9 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasherService>();
 builder.Services.AddControllers(options =>
 {
     options.Filters.AddService<ValidationFilter>();
+}).AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 builder.Services.AddSingleton<AuditableEntitySaveChangesInterceptor>();
 builder.Services.AddValidatorsFromAssembly(typeof(distribuidora_saas.Application.Clientes.DTOs.CrearClienteDto).Assembly);

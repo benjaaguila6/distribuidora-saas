@@ -13,7 +13,7 @@ namespace distribuidora_saas.Api.Controllers
     
     [ApiController]
     [Route("api/usuarios")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize]
     public class UsuariosController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -26,6 +26,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrador,Gerente")]
         public async Task<ActionResult> ObtenerTodos(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
@@ -46,6 +47,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult<UsuarioResponseDto>> Crear(
             [FromBody] CrearUsuarioDto dto,
             [FromServices] ICurrentTenantService currentTenant)
@@ -84,6 +86,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/desactivar")]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> Desactivar(Guid id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
@@ -96,6 +99,7 @@ namespace distribuidora_saas.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/reactivar")]
+        [Authorize(Roles = "Administrador")]
         public async Task<ActionResult> Reactivar(Guid id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);

@@ -1,11 +1,18 @@
 import AddIcon from '@mui/icons-material/Add'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SearchIcon from '@mui/icons-material/Search'
+import InventoryIcon from '@mui/icons-material/Inventory'
+import FactCheckIcon from '@mui/icons-material/FactCheck'
+import CancelIcon from '@mui/icons-material/Cancel'
+import HistoryIcon from '@mui/icons-material/History'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
@@ -18,11 +25,14 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import DialogoConfirmacion from '../../../shared/components/DialogoConfirmacion'
 import { obtenerMensajeErrorApi } from '../../../shared/lib/obtenerMensajeErrorApi'
+import { useAuth } from '../../auth/hooks/useAuth'
 import RegistrarVentaDialog from '../../ventas/components/RegistrarVentaDialog'
 import { clavesVentas } from '../../ventas/hooks/clavesVentas'
 import { useClientesParaVentaQuery } from '../../ventas/hooks/useClientesParaVentaQuery'
@@ -30,12 +40,21 @@ import { useValorConDebounce } from '../../ventas/hooks/useValorConDebounce'
 import { useVentasDeRepartoQuery } from '../../ventas/hooks/useVentasDeRepartoQuery'
 import type { ClienteSeleccionado, VentaPago, VentaProducto } from '../../ventas/types'
 import { clavesRepartos } from '../hooks/clavesRepartos'
+import { useCancelarRepartoMutation } from '../hooks/useCancelarRepartoMutation'
+import { useIniciarRepartoMutation } from '../hooks/useIniciarRepartoMutation'
 import { useRecorridoQuery } from '../hooks/useRecorridoQuery'
+import { useCierreRepartoQuery } from '../hooks/useCierreRepartoQuery'
 import { useRepartoQuery } from '../hooks/useRepartoQuery'
+import AgregarStockInicialDialog from './AgregarStockInicialDialog'
 import ChipEstadoReparto from './ChipEstadoReparto'
+import DialogoCierreReparto from './DialogoCierreReparto'
+import HistorialVentasClienteDialog from './HistorialVentasClienteDialog'
+import ResumenFinalizacionReparto from './ResumenFinalizacionReparto'
 
 const DEMORA_BUSQUEDA_MS = 400
 const CANTIDAD_FILAS_SKELETON_VENTAS = 5
+const ROL_ADMINISTRADOR = 'Administrador'
+const ROL_GERENTE = 'Gerente'
 
 const formatoMoneda = new Intl.NumberFormat('es-AR', {
   style: 'currency',
@@ -85,15 +104,31 @@ export default function RepartoDetallePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { usuario } = useAuth()
 
   const repartoId = id ?? ''
   const consultaReparto = useRepartoQuery(repartoId)
   const reparto = consultaReparto.data
   const consultaRecorrido = useRecorridoQuery(reparto?.recorridoId ?? '')
   const consultaVentas = useVentasDeRepartoQuery(repartoId)
+  const esFinalizado = reparto?.estado === 'Finalizado'
+  const consultaCierre = useCierreRepartoQuery(repartoId, esFinalizado)
+
+  const esGestion = usuario?.rol === ROL_ADMINISTRADOR || usuario?.rol === ROL_GERENTE
+  const mutacionIniciar = useIniciarRepartoMutation()
+  const mutacionCancelar = useCancelarRepartoMutation()
 
   const [dialogoVentaAbierto, setDialogoVentaAbierto] = useState(false)
   const [indiceAperturaVenta, setIndiceAperturaVenta] = useState(0)
+  const [dialogoStockAbierto, setDialogoStockAbierto] = useState(false)
+  const [dialogoCierreAbierto, setDialogoCierreAbierto] = useState(false)
+  const [dialogoHistorialCliente, setDialogoHistorialCliente] = useState<{
+    clienteId: string
+    clienteNombre: string
+    abierto: boolean
+  } | null>(null)
+  const [confirmarCancelar, setConfirmarCancelar] = useState(false)
+  const [errorGestion, setErrorGestion] = useState<string | null>(null)
   const [clienteParaVenta, setClienteParaVenta] = useState<ClienteSeleccionado | null>(null)
   const [textoBusquedaCliente, setTextoBusquedaCliente] = useState('')
   const busquedaCliente = useValorConDebounce(textoBusquedaCliente, DEMORA_BUSQUEDA_MS)
@@ -102,6 +137,9 @@ export default function RepartoDetallePage() {
   const clientesParaVenta = consultaClientes.data ?? []
   const ventas = consultaVentas.data ?? []
   const puedeRegistrarVentas = reparto?.estado === 'EnCurso'
+  const esPlanificado = reparto?.estado === 'Planificado'
+  const enCurso = reparto?.estado === 'EnCurso'
+  const tieneStockInicial = (reparto?.stockInicial.length ?? 0) > 0
 
   const abrirVenta = (cliente: ClienteSeleccionado | null) => {
     setIndiceAperturaVenta((actual) => actual + 1)
@@ -112,6 +150,26 @@ export default function RepartoDetallePage() {
   const cerrarVenta = () => {
     setDialogoVentaAbierto(false)
     setClienteParaVenta(null)
+  }
+
+  const manejarIniciar = async () => {
+    setErrorGestion(null)
+    try {
+      await mutacionIniciar.mutateAsync(repartoId)
+    } catch (error) {
+      setErrorGestion(obtenerMensajeErrorApi(error, 'No se pudo iniciar el reparto.'))
+    }
+  }
+
+  const manejarConfirmarCancelar = async () => {
+    setErrorGestion(null)
+    try {
+      await mutacionCancelar.mutateAsync(repartoId)
+      setConfirmarCancelar(false)
+    } catch (error) {
+      setErrorGestion(obtenerMensajeErrorApi(error, 'No se pudo cancelar el reparto.'))
+      setConfirmarCancelar(false)
+    }
   }
 
   if (consultaReparto.isLoading) {
@@ -179,13 +237,68 @@ export default function RepartoDetallePage() {
               )}
             </Box>
           </Box>
-          {puedeRegistrarVentas && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => abrirVenta(null)}>
-              Registrar venta
-            </Button>
-          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            {esGestion && esPlanificado && (
+              <>
+                <Button
+                  variant="outlined"
+                  startIcon={<InventoryIcon />}
+                  onClick={() => setDialogoStockAbierto(true)}
+                >
+                  Agregar stock
+                </Button>
+                <Tooltip title={tieneStockInicial ? '' : 'Agregá stock inicial antes de iniciar.'}>
+                  <span>
+                    <Button
+                      variant="contained"
+                      startIcon={<PlayArrowIcon />}
+                      disabled={!tieneStockInicial || mutacionIniciar.isPending}
+                      onClick={() => void manejarIniciar()}
+                    >
+                      Iniciar
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<CancelIcon />}
+                  onClick={() => setConfirmarCancelar(true)}
+                >
+                  Cancelar
+                </Button>
+              </>
+            )}
+            {esGestion && enCurso && (
+              <>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<FactCheckIcon />}
+                  onClick={() => setDialogoCierreAbierto(true)}
+                >
+                  Finalizar reparto
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<CancelIcon />}
+                  onClick={() => setConfirmarCancelar(true)}
+                >
+                  Cancelar
+                </Button>
+              </>
+            )}
+            {puedeRegistrarVentas && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => abrirVenta(null)}>
+                Registrar venta
+              </Button>
+            )}
+          </Box>
         </Box>
       </Paper>
+
+      {errorGestion !== null && <Alert severity="error">{errorGestion}</Alert>}
 
       {reparto.stockInicial.length > 0 && (
         <Paper sx={{ p: 2 }}>
@@ -222,18 +335,47 @@ export default function RepartoDetallePage() {
         ) : (
           <List dense>
             {consultaRecorrido.data.clientes.map((cliente) => (
-              <ListItemButton
+              <ListItem
                 key={cliente.clienteId}
-                disabled={!puedeRegistrarVentas}
-                onClick={() => abrirVenta({ id: cliente.clienteId, nombre: cliente.nombre })}
+                disableGutters
+                secondaryAction={
+                  <IconButton
+                    aria-label="Ver historial"
+                    title="Ver historial de ventas"
+                    edge="end"
+                    onClick={() =>
+                      setDialogoHistorialCliente({
+                        clienteId: cliente.clienteId,
+                        clienteNombre: cliente.nombreCliente,
+                        abierto: true,
+                      })
+                    }
+                  >
+                    <HistoryIcon />
+                  </IconButton>
+                }
               >
-                <ListItemIcon>
-                  <Typography variant="body2" color="text.secondary">
-                    {cliente.orden}
-                  </Typography>
-                </ListItemIcon>
-                <ListItemText primary={cliente.nombre} />
-              </ListItemButton>
+                <ListItemButton
+                  disabled={!puedeRegistrarVentas}
+                  onClick={() => abrirVenta({ id: cliente.clienteId, nombre: cliente.nombreCliente })}
+                >
+                  <ListItemIcon>
+                    <Typography variant="body2" color="text.secondary">
+                      {cliente.orden}
+                    </Typography>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={cliente.nombreCliente}
+                    secondary={
+                      <>
+                        {cliente.direccion} · Deuda: {formatoMoneda.format(cliente.saldoDeudaActual)} ·
+                        Envases: {cliente.saldoEnvasesActual}
+                      </>
+                    }
+                    sx={{ pr: 2 }}
+                  />
+                </ListItemButton>
+              </ListItem>
             ))}
           </List>
         )}
@@ -355,6 +497,18 @@ export default function RepartoDetallePage() {
         </TableContainer>
       </Paper>
 
+      {esFinalizado &&
+        (consultaCierre.isLoading ? (
+          <Paper sx={{ p: 2 }}>
+            <Skeleton height={40} />
+            <Skeleton height={160} />
+          </Paper>
+        ) : consultaCierre.isError ? (
+          <Alert severity="error">No se pudo cargar el resumen de finalización del reparto.</Alert>
+        ) : consultaCierre.data === undefined ? null : (
+          <ResumenFinalizacionReparto cierre={consultaCierre.data} />
+        ))}
+
       <RegistrarVentaDialog
         key={indiceAperturaVenta}
         open={dialogoVentaAbierto}
@@ -366,6 +520,42 @@ export default function RepartoDetallePage() {
           void queryClient.invalidateQueries({ queryKey: clavesRepartos.raiz })
           void queryClient.invalidateQueries({ queryKey: clavesVentas.ventasDeReparto(reparto.id) })
         }}
+      />
+
+      <AgregarStockInicialDialog
+        repartoId={reparto.id}
+        repartoNombre={reparto.nombreRecorrido}
+        productoIdsYaCargados={reparto.stockInicial.map((item) => item.productoId)}
+        open={dialogoStockAbierto}
+        onClose={() => setDialogoStockAbierto(false)}
+      />
+
+      <DialogoCierreReparto
+        repartoId={reparto.id}
+        repartoNombre={reparto.nombreRecorrido}
+        open={dialogoCierreAbierto}
+        onClose={() => setDialogoCierreAbierto(false)}
+        onFinalizado={() => {
+          setDialogoCierreAbierto(false)
+        }}
+      />
+
+      <HistorialVentasClienteDialog
+        clienteId={dialogoHistorialCliente?.clienteId ?? ''}
+        clienteNombre={dialogoHistorialCliente?.clienteNombre ?? ''}
+        open={dialogoHistorialCliente?.abierto ?? false}
+        onClose={() => setDialogoHistorialCliente(null)}
+      />
+
+      <DialogoConfirmacion
+        abierto={confirmarCancelar}
+        titulo="Cancelar reparto"
+        mensaje="¿Seguro que querés cancelar este reparto? Esta acción no se puede deshacer."
+        textoConfirmar="Cancelar reparto"
+        colorConfirmar="error"
+        cargando={mutacionCancelar.isPending}
+        onConfirmar={() => void manejarConfirmarCancelar()}
+        onCancelar={() => setConfirmarCancelar(false)}
       />
     </Box>
   )
