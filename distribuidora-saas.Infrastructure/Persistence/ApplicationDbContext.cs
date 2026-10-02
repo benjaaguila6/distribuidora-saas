@@ -31,6 +31,7 @@ namespace distribuidora_saas.Infrastructure.Persistence
         public DbSet<RecorridoCliente> RecorridoClientes => Set<RecorridoCliente>();
         public DbSet<Reparto> Repartos => Set<Reparto>();
         public DbSet<RepartoStockInicial> RepartoStockIniciales => Set<RepartoStockInicial>();
+        public DbSet<RepartoStockAdicional> RepartosStockAdicionales => Set<RepartoStockAdicional>();
         public DbSet<Venta> Ventas => Set<Venta>();
         public DbSet<VentaProducto> VentaProductos => Set<VentaProducto>();
         public DbSet<VentaPago> VentaPagos => Set<VentaPago>();

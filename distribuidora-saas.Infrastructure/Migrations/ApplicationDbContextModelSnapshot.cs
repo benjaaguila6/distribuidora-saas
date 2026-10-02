@@ -335,6 +335,48 @@ namespace distribuidora_saas.Infrastructure.Migrations
                     b.ToTable("RepartoEnvasesRetirados", (string)null);
                 });
 
+            modelBuilder.Entity("distribuidora_saas_Domain.Entitites.RepartoStockAdicional", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaHora")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ProductoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RepartoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductoId");
+
+                    b.HasIndex("RepartoId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("TenantId", "RepartoId", "ProductoId");
+
+                    b.ToTable("RepartosStockAdicionales", (string)null);
+                });
+
             modelBuilder.Entity("distribuidora_saas_Domain.Entitites.RepartoStockInicial", b =>
                 {
                     b.Property<Guid>("Id")
@@ -593,6 +635,27 @@ namespace distribuidora_saas.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("distribuidora_saas_Domain.Entitites.RepartoStockAdicional", b =>
+                {
+                    b.HasOne("distribuidora_saas_Domain.Entitites.Producto", null)
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("distribuidora_saas_Domain.Entitites.Reparto", null)
+                        .WithMany("StockAdicional")
+                        .HasForeignKey("RepartoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("distribuidora_saas_Domain.Entitites.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("distribuidora_saas_Domain.Entitites.RepartoStockInicial", b =>
                 {
                     b.HasOne("distribuidora_saas_Domain.Entitites.Producto", null)
@@ -657,6 +720,8 @@ namespace distribuidora_saas.Infrastructure.Migrations
                     b.Navigation("EnvasesRetirados");
 
                     b.Navigation("Gastos");
+
+                    b.Navigation("StockAdicional");
 
                     b.Navigation("StockInicial");
                 });
