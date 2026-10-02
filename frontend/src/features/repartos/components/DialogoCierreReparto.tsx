@@ -32,6 +32,10 @@ const formatoMoneda = new Intl.NumberFormat('es-AR', {
   currency: 'ARS',
 })
 
+function textoUnidades(cantidad: number): string {
+  return `${cantidad} unidad${cantidad === 1 ? '' : 'es'}`
+}
+
 interface FilaGastoForm {
   key: string
   concepto: ConceptoGasto
@@ -241,6 +245,42 @@ export default function DialogoCierreReparto({
                   </Table>
                 </TableContainer>
               </Box>
+
+              {cierre.stockPorProducto.length > 0 && (
+                <Box sx={{ display: 'grid', gap: 1 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Desglose de stock por producto
+                  </Typography>
+                  <TableContainer component={Box}>
+                    <Table size="small" aria-label="Desglose de stock por producto del cierre">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Producto</TableCell>
+                          <TableCell align="right">Inicial</TableCell>
+                          <TableCell align="right">Cargas adicionales</TableCell>
+                          <TableCell align="right">Total disponible</TableCell>
+                          <TableCell align="right">Vendido</TableCell>
+                          <TableCell align="right">Restante</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {cierre.stockPorProducto.map((item) => (
+                          <TableRow key={item.productoId}>
+                            <TableCell>{item.nombreProducto}</TableCell>
+                            <TableCell align="right">{textoUnidades(item.cantidadInicial)}</TableCell>
+                            <TableCell align="right">{textoUnidades(item.cantidadAdicional)}</TableCell>
+                            <TableCell align="right">
+                              {textoUnidades(item.cantidadTotalDisponible)}
+                            </TableCell>
+                            <TableCell align="right">{textoUnidades(item.cantidadVendida)}</TableCell>
+                            <TableCell align="right">{textoUnidades(item.cantidadRestante)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
 
               <TextField
                 label="Caja entregada"

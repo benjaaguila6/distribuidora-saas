@@ -228,8 +228,9 @@ export default function RegistrarVentaDialog({
     if (hayCargo) {
       for (const fila of pagos) {
         const monto = parsearDecimalOpcional(fila.monto)
-        if (monto === null || monto <= 0) {
-          erroresPagosCalculados[`${fila.key}:monto`] = 'El monto debe ser mayor a cero.'
+        const tieneMonto = monto !== null && monto > 0
+        if (!tieneMonto) {
+          continue
         }
 
         if (fila.formaPago === 'Efectivo') {
@@ -237,7 +238,7 @@ export default function RegistrarVentaDialog({
           if (importe === null) {
             erroresPagosCalculados[`${fila.key}:importe`] =
               'Indicá el importe entregado por el cliente.'
-          } else if (monto !== null && importe < monto) {
+          } else if (importe < monto - 0.005) {
             erroresPagosCalculados[`${fila.key}:importe`] =
               'El importe entregado no puede ser menor al monto del pago.'
           }
@@ -247,12 +248,13 @@ export default function RegistrarVentaDialog({
       pagosDto = pagos.flatMap((fila) => {
         const monto = parsearDecimalOpcional(fila.monto)
         if (monto === null || monto <= 0) return []
+        const importe =
+          fila.formaPago === 'Efectivo' ? parsearDecimalOpcional(fila.importeEntregado) : null
         return [
           {
             formaPago: fila.formaPago,
             monto,
-            importeEntregadoPorCliente:
-              fila.formaPago === 'Efectivo' ? parsearDecimalOpcional(fila.importeEntregado) : null,
+            importeEntregadoPorCliente: importe,
           },
         ]
       })

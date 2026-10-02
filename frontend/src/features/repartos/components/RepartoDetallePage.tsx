@@ -45,6 +45,7 @@ import { useIniciarRepartoMutation } from '../hooks/useIniciarRepartoMutation'
 import { useRecorridoQuery } from '../hooks/useRecorridoQuery'
 import { useCierreRepartoQuery } from '../hooks/useCierreRepartoQuery'
 import { useRepartoQuery } from '../hooks/useRepartoQuery'
+import AgregarStockAdicionalDialog from './AgregarStockAdicionalDialog'
 import AgregarStockInicialDialog from './AgregarStockInicialDialog'
 import ChipEstadoReparto from './ChipEstadoReparto'
 import DialogoCierreReparto from './DialogoCierreReparto'
@@ -121,6 +122,7 @@ export default function RepartoDetallePage() {
   const [dialogoVentaAbierto, setDialogoVentaAbierto] = useState(false)
   const [indiceAperturaVenta, setIndiceAperturaVenta] = useState(0)
   const [dialogoStockAbierto, setDialogoStockAbierto] = useState(false)
+  const [dialogoStockAdicionalAbierto, setDialogoStockAdicionalAbierto] = useState(false)
   const [dialogoCierreAbierto, setDialogoCierreAbierto] = useState(false)
   const [dialogoHistorialCliente, setDialogoHistorialCliente] = useState<{
     clienteId: string
@@ -271,6 +273,13 @@ export default function RepartoDetallePage() {
             )}
             {esGestion && enCurso && (
               <>
+                <Button
+                  variant="outlined"
+                  startIcon={<InventoryIcon />}
+                  onClick={() => setDialogoStockAdicionalAbierto(true)}
+                >
+                  Agregar stock adicional
+                </Button>
                 <Button
                   variant="contained"
                   color="success"
@@ -528,6 +537,13 @@ export default function RepartoDetallePage() {
         productoIdsYaCargados={reparto.stockInicial.map((item) => item.productoId)}
         open={dialogoStockAbierto}
         onClose={() => setDialogoStockAbierto(false)}
+      />
+
+      <AgregarStockAdicionalDialog
+        repartoId={reparto.id}
+        repartoNombre={reparto.nombreRecorrido}
+        open={dialogoStockAdicionalAbierto}
+        onClose={() => setDialogoStockAdicionalAbierto(false)}
       />
 
       <DialogoCierreReparto

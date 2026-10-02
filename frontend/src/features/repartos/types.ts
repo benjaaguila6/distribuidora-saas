@@ -122,6 +122,8 @@ export interface StockCierreReparto {
   cantidadInicial: number
   cantidadVendida: number
   cantidadRestante: number
+  cantidadAdicional: number
+  cantidadTotalDisponible: number
 }
 
 export interface EnvaseCierreReparto {
