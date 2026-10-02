@@ -29,7 +29,7 @@ namespace distribuidora_saas.Application.Ventas.Validators
                 pago.RuleFor(p => p.FormaPago).IsInEnum();
                 pago.RuleFor(p => p.Monto).GreaterThan(0).WithMessage("El monto del pago debe ser mayor a cero.");
 
-                pago.When(p => p.FormaPago == FormaPago.Efectivo, () =>
+                pago.When(p => p.FormaPago == FormaPago.Efectivo && p.Monto > 0, () =>
                 {
                     pago.RuleFor(p => p.ImporteEntregadoPorCliente)
                         .NotNull().WithMessage("Para pagos en efectivo el importe entregado es obligatorio.");

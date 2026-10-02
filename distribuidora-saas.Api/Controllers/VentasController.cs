@@ -74,6 +74,7 @@ namespace distribuidora_saas.Api.Controllers
             var reparto = await _context.Repartos
                 .Include(r => r.StockInicial)
                 .Include(r => r.EnvasesRetirados)
+                .Include(r => r.StockAdicional)
                 .FirstOrDefaultAsync(r => r.Id == dto.RepartoId);
 
             if (reparto is null)
