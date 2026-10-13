@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import axios from 'axios'
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -56,17 +57,54 @@ export default function LoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        p: 2,
+        p: { xs: 2, sm: 3 },
+        background:
+          'radial-gradient(circle at 15% 15%, rgba(40, 87, 164, 0.08), transparent 32%), #F5F7FA',
       }}
     >
       <Paper
         component="form"
         onSubmit={onSubmit}
-        sx={{ width: '100%', maxWidth: 400, p: 4, display: 'flex', flexDirection: 'column', gap: 2 }}
+        sx={{
+          width: '100%',
+          maxWidth: 420,
+          p: { xs: 3, sm: 4 },
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}
       >
-        <Typography variant="h5" sx={{ textAlign: 'center' }}>
-          Iniciar sesión
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.25, mb: 0.5 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              placeItems: 'center',
+              width: 38,
+              height: 38,
+              borderRadius: 2,
+              color: 'primary.main',
+              backgroundColor: 'primary.light',
+            }}
+          >
+            <Inventory2OutlinedIcon fontSize="small" />
+          </Box>
+          <Box>
+            <Typography variant="subtitle1" sx={{ lineHeight: 1.3 }}>
+              Distribuidora SAAS
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Gestión comercial
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ textAlign: 'center', mb: 0.5 }}>
+          <Typography variant="h5" component="h1">
+            Iniciar sesión
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Ingresá tus credenciales para continuar.
+          </Typography>
+        </Box>
         {errorGeneral !== null ? <Alert severity="error">{errorGeneral}</Alert> : null}
         <TextField
           label="Email"

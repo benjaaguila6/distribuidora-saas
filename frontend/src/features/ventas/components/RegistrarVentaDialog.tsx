@@ -89,6 +89,7 @@ function redondearDinero(monto: number): number {
 interface RegistrarVentaDialogProps {
   repartoId: string
   repartoNombre: string
+  stockDisponiblePorProducto: Record<string, number>
   clienteInicial: ClienteSeleccionado | null
   open: boolean
   onClose: () => void
@@ -98,6 +99,7 @@ interface RegistrarVentaDialogProps {
 export default function RegistrarVentaDialog({
   repartoId,
   repartoNombre,
+  stockDisponiblePorProducto,
   clienteInicial,
   open,
   onClose,
@@ -202,6 +204,7 @@ export default function RegistrarVentaDialog({
     }
 
     const erroresProductosCalculados: Record<string, string> = {}
+    const cantidadesPorProducto = new Map<string, { cantidad: number; fila: FilaProductoForm }[]>()
     for (const fila of productos) {
       if (fila.productoId === '') {
         erroresProductosCalculados[`${fila.key}:producto`] = 'Elegí un producto.'
@@ -212,25 +215,72 @@ export default function RegistrarVentaDialog({
         erroresProductosCalculados[`${fila.key}:cantidad`] =
           'La cantidad debe ser un número entero mayor o igual a 1.'
       }
+
+      if (
+        cantidad !== null &&
+        fila.productoId !== '' &&
+        (fila.tipoMovimiento === 'Entregado' || fila.tipoMovimiento === 'Cambio')
+      ) {
+        const filasProducto = cantidadesPorProducto.get(fila.productoId) ?? []
+        filasProducto.push({ cantidad, fila })
+        cantidadesPorProducto.set(fila.productoId, filasProducto)
+      }
+    }
+
+    for (const [productoId, filasProducto] of cantidadesPorProducto) {
+      const cantidadSolicitada = filasProducto.reduce((total, fila) => total + fila.cantidad, 0)
+      const disponible = stockDisponiblePorProducto[productoId] ?? 0
+      if (cantidadSolicitada > disponible) {
+        const ultimaFila = filasProducto[filasProducto.length - 1].fila
+        erroresProductosCalculados[`${ultimaFila.key}:cantidad`] =
+          `La cantidad supera el stock disponible. Disponible: ${disponible}.`
+      }
     }
 
     const erroresPagosCalculados: Record<string, string> = {}
-    for (const fila of pagos) {
-      const monto = parsearDecimalOpcional(fila.monto)
-      if (monto === null || monto <= 0) {
-        erroresPagosCalculados[`${fila.key}:monto`] = 'El monto debe ser mayor a cero.'
-      }
+    // Un movimiento "Cambio" (o solo retirados) no genera cargo: si no hay productos
+    // entregados, el total a cobrar es 0 y no se exige ni se envía ningún pago.
+    const hayCargo = totalProductosEntregados > 0
 
-      if (fila.formaPago === 'Efectivo') {
-        const importe = parsearDecimalOpcional(fila.importeEntregado)
-        if (importe === null) {
-          erroresPagosCalculados[`${fila.key}:importe`] =
-            'Indicá el importe entregado por el cliente.'
-        } else if (monto !== null && importe < monto) {
-          erroresPagosCalculados[`${fila.key}:importe`] =
-            'El importe entregado no puede ser menor al monto del pago.'
+    let pagosDto: {
+      formaPago: FormaPagoVenta
+      monto: number
+      importeEntregadoPorCliente: number | null
+    }[] = []
+
+    if (hayCargo) {
+      for (const fila of pagos) {
+        const monto = parsearDecimalOpcional(fila.monto)
+        const tieneMonto = monto !== null && monto > 0
+        if (!tieneMonto) {
+          continue
+        }
+
+        if (fila.formaPago === 'Efectivo') {
+          const importe = parsearDecimalOpcional(fila.importeEntregado)
+          if (importe === null) {
+            erroresPagosCalculados[`${fila.key}:importe`] =
+              'Indicá el importe entregado por el cliente.'
+          } else if (importe < monto - 0.005) {
+            erroresPagosCalculados[`${fila.key}:importe`] =
+              'El importe entregado no puede ser menor al monto del pago.'
+          }
         }
       }
+
+      pagosDto = pagos.flatMap((fila) => {
+        const monto = parsearDecimalOpcional(fila.monto)
+        if (monto === null || monto <= 0) return []
+        const importe =
+          fila.formaPago === 'Efectivo' ? parsearDecimalOpcional(fila.importeEntregado) : null
+        return [
+          {
+            formaPago: fila.formaPago,
+            monto,
+            importeEntregadoPorCliente: importe,
+          },
+        ]
+      })
     }
 
     const hayErrores =
@@ -249,19 +299,6 @@ export default function RegistrarVentaDialog({
       const cantidad = enteroDesdeTexto(fila.cantidad)
       if (cantidad === null) return []
       return [{ productoId: fila.productoId, tipoMovimiento: fila.tipoMovimiento, cantidad }]
-    })
-
-    const pagosDto = pagos.flatMap((fila) => {
-      const monto = parsearDecimalOpcional(fila.monto)
-      if (monto === null || monto <= 0) return []
-      return [
-        {
-          formaPago: fila.formaPago,
-          monto,
-          importeEntregadoPorCliente:
-            fila.formaPago === 'Efectivo' ? parsearDecimalOpcional(fila.importeEntregado) : null,
-        },
-      ]
     })
 
     const dto: CrearVentaInput = {
@@ -375,6 +412,21 @@ export default function RegistrarVentaDialog({
               {productos.map((fila) => {
                 const productoSeleccionado =
                   productosDisponibles.find((item) => item.id === fila.productoId) ?? null
+                const disponible = stockDisponiblePorProducto[fila.productoId] ?? 0
+                const cantidadEnOtrasFilas = productos.reduce((total, otraFila) => {
+                  if (
+                    otraFila.key === fila.key ||
+                    otraFila.productoId !== fila.productoId ||
+                    (otraFila.tipoMovimiento !== 'Entregado' && otraFila.tipoMovimiento !== 'Cambio')
+                  ) {
+                    return total
+                  }
+                  return total + (enteroDesdeTexto(otraFila.cantidad) ?? 0)
+                }, 0)
+                const maximoCantidad =
+                  fila.tipoMovimiento === 'Entregado' || fila.tipoMovimiento === 'Cambio'
+                    ? Math.max(0, disponible - cantidadEnOtrasFilas)
+                    : undefined
 
                 return (
                   <Box
@@ -402,7 +454,7 @@ export default function RegistrarVentaDialog({
                           helperText={
                             erroresProductos[`${fila.key}:producto`] ??
                             (productoSeleccionado !== null
-                              ? `Precio unitario: ${formatoMoneda.format(productoSeleccionado.precio)}`
+                              ? `Precio unitario: ${formatoMoneda.format(productoSeleccionado.precio)} · Disponible: ${disponible}`
                               : ' ')
                           }
                         />
@@ -430,7 +482,12 @@ export default function RegistrarVentaDialog({
                       label="Cantidad"
                       size="small"
                       sx={{ width: 110 }}
-                      slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+                      slotProps={{
+                        htmlInput: {
+                          inputMode: 'numeric',
+                          ...(maximoCantidad === undefined ? {} : { max: maximoCantidad }),
+                        },
+                      }}
                       value={fila.cantidad}
                       onChange={(evento) => actualizarProducto(fila.key, { cantidad: evento.target.value })}
                       error={erroresProductos[`${fila.key}:cantidad`] !== undefined}

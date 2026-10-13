@@ -7,9 +7,10 @@ import RecorridoDetallePage from '../features/recorridos/components/RecorridoDet
 import RecorridosListPage from '../features/recorridos/components/RecorridosListPage'
 import RepartoDetallePage from '../features/repartos/components/RepartoDetallePage'
 import RepartosListPage from '../features/repartos/components/RepartosListPage'
+import UsuariosListPage from '../features/usuarios/components/UsuariosListPage'
 import LoginPage from '../features/auth/components/LoginPage'
+import InicioPage from '../features/inicio/InicioPage'
 import AppLayout from '../shared/components/AppLayout'
-import PaginaProximamente from '../shared/components/PaginaProximamente'
 
 const ROL_ADMINISTRADOR = 'Administrador'
 const ROL_GERENTE = 'Gerente'
@@ -29,12 +30,12 @@ export const router = createBrowserRouter([
               {
                 element: <RutaPorRol rolesPermitidos={[ROL_ADMINISTRADOR, ROL_GERENTE]} />,
                 children: [
-                  { index: true, element: <PaginaProximamente titulo="Inicio" /> },
+                  { index: true, element: <InicioPage /> },
                   { path: 'clientes', element: <ClientesListPage /> },
                   { path: 'productos', element: <ProductosListPage /> },
                   { path: 'recorridos', element: <RecorridosListPage /> },
                   { path: 'recorridos/:id', element: <RecorridoDetallePage /> },
-                  { path: 'usuarios', element: <PaginaProximamente titulo="Usuarios" /> },
+                  { path: 'usuarios', element: <UsuariosListPage /> },
                 ],
               },
               { path: 'repartos', element: <RepartosListPage /> },

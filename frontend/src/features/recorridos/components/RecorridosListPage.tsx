@@ -27,6 +27,7 @@ import { useDesactivarRecorridoMutation } from '../hooks/useDesactivarRecorridoM
 import { useReactivarRecorridoMutation } from '../hooks/useReactivarRecorridoMutation'
 import RecorridoFormDialog from './RecorridoFormDialog'
 import DialogoConfirmacion from '../../../shared/components/DialogoConfirmacion'
+import PageHeader from '../../../shared/components/PageHeader'
 import { obtenerMensajeErrorApi } from '../../../shared/lib/obtenerMensajeErrorApi'
 
 const OPCIONES_TAMANO_PAGINA = [10, 25, 50]
@@ -83,19 +84,10 @@ export default function RecorridosListPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 1,
-        }}
-      >
-        <Typography variant="h5" component="h1">
-          Recorridos
-        </Typography>
-        {puedeEditar && (
+      <PageHeader
+        title="Recorridos"
+        description="Organizá los días de visita y los clientes de cada recorrido."
+        action={puedeEditar ? (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -103,8 +95,8 @@ export default function RecorridosListPage() {
           >
             Nuevo recorrido
           </Button>
-        )}
-      </Box>
+        ) : undefined}
+      />
 
       {errorAccion !== null && <Alert severity="error">{errorAccion}</Alert>}
 

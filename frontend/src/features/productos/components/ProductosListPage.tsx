@@ -30,6 +30,7 @@ import { useReactivarProductoMutation } from '../hooks/useReactivarProductoMutat
 import { useValorConDebounce } from '../hooks/useValorConDebounce'
 import ProductoFormDialog, { type ModoFormularioProducto } from './ProductoFormDialog'
 import DialogoConfirmacion from '../../../shared/components/DialogoConfirmacion'
+import PageHeader from '../../../shared/components/PageHeader'
 import { obtenerMensajeErrorApi } from '../../../shared/lib/obtenerMensajeErrorApi'
 
 const OPCIONES_TAMANO_PAGINA = [10, 25, 50]
@@ -113,41 +114,34 @@ export default function ProductosListPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 1,
-        }}
-      >
-        <Typography variant="h5" component="h1">
-          Productos
-        </Typography>
-        {puedeEditar && (
+      <PageHeader
+        title="Productos"
+        description="Gestioná el catálogo, los precios y los tipos de envase."
+        action={puedeEditar ? (
           <Button variant="contained" startIcon={<AddIcon />} onClick={abrirCreacion}>
             Nuevo producto
           </Button>
-        )}
-      </Box>
-
-      <TextField
-        label="Buscar por nombre"
-        placeholder="Buscar por nombre…"
-        size="small"
-        fullWidth
-        value={textoBusqueda}
-        onChange={(evento) => {
-          setTextoBusqueda(evento.target.value)
-          setPagina(1)
-        }}
-        slotProps={{
-          input: {
-            startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-          },
-        }}
+        ) : undefined}
       />
+
+      <Paper sx={{ p: 2 }}>
+        <TextField
+          label="Buscar por nombre"
+          placeholder="Buscar por nombre…"
+          fullWidth
+          sx={{ maxWidth: { sm: 380 } }}
+          value={textoBusqueda}
+          onChange={(evento) => {
+            setTextoBusqueda(evento.target.value)
+            setPagina(1)
+          }}
+          slotProps={{
+            input: {
+              startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+            },
+          }}
+        />
+      </Paper>
 
       {errorAccion !== null && <Alert severity="error">{errorAccion}</Alert>}
 

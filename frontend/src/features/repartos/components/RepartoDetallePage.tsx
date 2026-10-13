@@ -9,7 +9,6 @@ import HistoryIcon from '@mui/icons-material/History'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
@@ -45,6 +44,7 @@ import { useIniciarRepartoMutation } from '../hooks/useIniciarRepartoMutation'
 import { useRecorridoQuery } from '../hooks/useRecorridoQuery'
 import { useCierreRepartoQuery } from '../hooks/useCierreRepartoQuery'
 import { useRepartoQuery } from '../hooks/useRepartoQuery'
+import AgregarStockAdicionalDialog from './AgregarStockAdicionalDialog'
 import AgregarStockInicialDialog from './AgregarStockInicialDialog'
 import ChipEstadoReparto from './ChipEstadoReparto'
 import DialogoCierreReparto from './DialogoCierreReparto'
@@ -121,6 +121,7 @@ export default function RepartoDetallePage() {
   const [dialogoVentaAbierto, setDialogoVentaAbierto] = useState(false)
   const [indiceAperturaVenta, setIndiceAperturaVenta] = useState(0)
   const [dialogoStockAbierto, setDialogoStockAbierto] = useState(false)
+  const [dialogoStockAdicionalAbierto, setDialogoStockAdicionalAbierto] = useState(false)
   const [dialogoCierreAbierto, setDialogoCierreAbierto] = useState(false)
   const [dialogoHistorialCliente, setDialogoHistorialCliente] = useState<{
     clienteId: string
@@ -272,6 +273,13 @@ export default function RepartoDetallePage() {
             {esGestion && enCurso && (
               <>
                 <Button
+                  variant="outlined"
+                  startIcon={<InventoryIcon />}
+                  onClick={() => setDialogoStockAdicionalAbierto(true)}
+                >
+                  Agregar stock adicional
+                </Button>
+                <Button
                   variant="contained"
                   color="success"
                   startIcon={<FactCheckIcon />}
@@ -303,16 +311,36 @@ export default function RepartoDetallePage() {
       {reparto.stockInicial.length > 0 && (
         <Paper sx={{ p: 2 }}>
           <Typography variant="h6" component="h2" gutterBottom>
-            Stock inicial
+            Stock del reparto
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {reparto.stockInicial.map((item) => (
-              <Chip
-                key={item.productoId}
-                label={`${item.nombreProducto}: ${item.cantidadRestante}/${item.cantidadInicial}`}
-              />
-            ))}
-          </Box>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Producto</TableCell>
+                  <TableCell align="right">Disponible</TableCell>
+                  <TableCell align="right">Inicial</TableCell>
+                  <TableCell align="right">Adicional</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {reparto.stockInicial.map((item) => (
+                  <TableRow key={item.productoId}>
+                    <TableCell>{item.nombreProducto}</TableCell>
+                    <TableCell align="right">
+                      <Typography component="span" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                        {item.cantidadDisponible}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">{item.cantidadInicial}</TableCell>
+                    <TableCell align="right">
+                      {item.cantidadAdicional > 0 ? item.cantidadAdicional : '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Paper>
       )}
 
@@ -515,6 +543,9 @@ export default function RepartoDetallePage() {
         repartoId={reparto.id}
         repartoNombre={reparto.nombreRecorrido}
         clienteInicial={clienteParaVenta}
+        stockDisponiblePorProducto={Object.fromEntries(
+          reparto.stockInicial.map((item) => [item.productoId, item.cantidadDisponible]),
+        )}
         onClose={cerrarVenta}
         onVentaCreada={() => {
           void queryClient.invalidateQueries({ queryKey: clavesRepartos.raiz })
@@ -528,6 +559,13 @@ export default function RepartoDetallePage() {
         productoIdsYaCargados={reparto.stockInicial.map((item) => item.productoId)}
         open={dialogoStockAbierto}
         onClose={() => setDialogoStockAbierto(false)}
+      />
+
+      <AgregarStockAdicionalDialog
+        repartoId={reparto.id}
+        repartoNombre={reparto.nombreRecorrido}
+        open={dialogoStockAdicionalAbierto}
+        onClose={() => setDialogoStockAdicionalAbierto(false)}
       />
 
       <DialogoCierreReparto

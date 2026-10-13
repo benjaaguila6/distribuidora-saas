@@ -20,6 +20,7 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useRepartosQuery } from '../hooks/useRepartosQuery'
 import ChipEstadoReparto from './ChipEstadoReparto'
 import CrearRepartoDialog from './CrearRepartoDialog'
+import PageHeader from '../../../shared/components/PageHeader'
 
 const OPCIONES_TAMANO_PAGINA = [10, 25, 50]
 const CANTIDAD_FILAS_SKELETON = 8
@@ -67,9 +68,7 @@ export default function RepartosListPage() {
     if (consulta.isError) {
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="h5" component="h1">
-            Repartos
-          </Typography>
+          <PageHeader title="Repartos" description="Consultá el estado de tus repartos asignados." />
           <Alert severity="error">Ocurrió un error al cargar los repartos.</Alert>
         </Box>
       )
@@ -82,9 +81,7 @@ export default function RepartosListPage() {
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Typography variant="h5" component="h1">
-          Repartos
-        </Typography>
+        <PageHeader title="Repartos" description="Consultá el estado de tus repartos asignados." />
         <Alert severity="info">No tenés ningún reparto en curso.</Alert>
       </Box>
     )
@@ -92,19 +89,10 @@ export default function RepartosListPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 1,
-        }}
-      >
-        <Typography variant="h5" component="h1">
-          Repartos
-        </Typography>
-        {esGestion && (
+      <PageHeader
+        title="Repartos"
+        description="Planificá las entregas y consultá su estado y responsable."
+        action={esGestion ? (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -112,8 +100,8 @@ export default function RepartosListPage() {
           >
             Nuevo reparto
           </Button>
-        )}
-      </Box>
+        ) : undefined}
+      />
 
       <Paper>
         <TableContainer>

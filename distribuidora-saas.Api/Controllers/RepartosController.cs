@@ -65,6 +65,7 @@ namespace distribuidora_saas.Api.Controllers
         {
             var reparto = await _context.Repartos
                 .Include(r => r.StockInicial)
+                .Include(r => r.StockAdicional)
                 .Include(r => r.EnvasesRetirados)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
@@ -96,9 +97,16 @@ namespace distribuidora_saas.Api.Controllers
                 .Where(v => v.RepartoId == id)
                 .ToListAsync();
 
+            // Cargas de stock adicionales hechas a mitad del reparto: se acumulan por producto
+            // y solo afectan el reporte de cierre, nunca el calculo de envases (decision 10.B).
+            var stockAdicional = await _context.RepartosStockAdicionales
+                .Where(sa => sa.RepartoId == id)
+                .ToListAsync();
+
             var productoIds = reparto.StockInicial.Select(s => s.ProductoId)
                 .Concat(reparto.EnvasesRetirados.Select(e => e.ProductoId))
                 .Concat(ventas.SelectMany(v => v.Productos.Select(p => p.ProductoId)))
+                .Concat(stockAdicional.Select(sa => sa.ProductoId))
                 .Distinct()
                 .ToList();
 
@@ -106,13 +114,34 @@ namespace distribuidora_saas.Api.Controllers
                 .Where(p => productoIds.Contains(p.Id))
                 .ToDictionaryAsync(p => p.Id, p => p);
 
+            var adicionalPorProducto = stockAdicional
+                .GroupBy(sa => sa.ProductoId)
+                .ToDictionary(g => g.Key, g => g.Sum(sa => sa.Cantidad));
+            var adicionalRestantePorProducto = stockAdicional
+                .GroupBy(sa => sa.ProductoId)
+                .ToDictionary(g => g.Key, g => g.Sum(sa => sa.CantidadRestante));
+
+            // El cierre separa la carga histórica del saldo disponible, que incluye remanentes adicionales.
             var stockPorProducto = reparto.StockInicial
                 .Select(s => new StockCierreDto(
                     s.ProductoId,
                     productos.GetValueOrDefault(s.ProductoId)?.Nombre ?? "Producto no encontrado",
                     s.CantidadInicial,
-                    s.CantidadInicial - s.CantidadRestante,
-                    s.CantidadRestante))
+                    s.CantidadInicial + adicionalPorProducto.GetValueOrDefault(s.ProductoId, 0)
+                        - s.CantidadRestante - adicionalRestantePorProducto.GetValueOrDefault(s.ProductoId, 0),
+                    s.CantidadRestante + adicionalRestantePorProducto.GetValueOrDefault(s.ProductoId, 0),
+                    adicionalPorProducto.GetValueOrDefault(s.ProductoId, 0),
+                    s.CantidadInicial + adicionalPorProducto.GetValueOrDefault(s.ProductoId, 0)))
+                .Concat(adicionalPorProducto
+                    .Where(par => reparto.StockInicial.All(s => s.ProductoId != par.Key))
+                    .Select(par => new StockCierreDto(
+                        par.Key,
+                        productos.GetValueOrDefault(par.Key)?.Nombre ?? "Producto no encontrado",
+                        0,
+                        par.Value - adicionalRestantePorProducto.GetValueOrDefault(par.Key, 0),
+                        adicionalRestantePorProducto.GetValueOrDefault(par.Key, 0),
+                        par.Value,
+                        par.Value)))
                 .ToList();
 
             var esperadosPorProducto = ventas
@@ -253,6 +282,46 @@ namespace distribuidora_saas.Api.Controllers
             return NoContent();
         }
 
+        [HttpPost("{id:guid}/stock-adicional")]
+        [Authorize(Roles = "Administrador,Gerente")]
+        public async Task<ActionResult> AgregarStockAdicional(
+            Guid id,
+            [FromBody] AgregarStockAdicionalDto dto,
+            [FromServices] ICurrentTenantService currentTenant)
+        {
+            if (currentTenant.TenantId is null)
+                return BadRequest("No se pudo determinar el tenant actual.");
+
+            if (_currentUser.UsuarioId is not Guid usuarioId)
+                return Unauthorized("No se pudo determinar el usuario actual.");
+
+            var reparto = await _context.Repartos.FindAsync(id);
+
+            if (reparto is null) return NotFound();
+
+            if (reparto.Estado != EstadoReparto.EnCurso)
+                return BadRequest("Solo se puede agregar stock adicional cuando el reparto está en curso.");
+
+            if (dto.Cantidad <= 0)
+                return BadRequest("La cantidad debe ser mayor a cero.");
+
+            var productoExiste = await _context.Productos.AnyAsync(p => p.Id == dto.ProductoId && p.Activo);
+            if (!productoExiste) return NotFound("El producto indicado no existe o está inactivo.");
+
+            var stockAdicional = new RepartoStockAdicional(
+                currentTenant.TenantId.Value,
+                id,
+                dto.ProductoId,
+                usuarioId,
+                dto.Cantidad,
+                DateTime.UtcNow);
+
+            _context.RepartosStockAdicionales.Add(stockAdicional);
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         [HttpPatch("{id:guid}/iniciar")]
         [Authorize(Roles = "Administrador,Gerente")]
         public async Task<ActionResult> Iniciar(Guid id)
@@ -324,7 +393,10 @@ namespace distribuidora_saas.Api.Controllers
             var recorrido = await _context.Recorridos.FindAsync(reparto.RecorridoId);
             var repartidor = await _context.Usuarios.FindAsync(reparto.RepartidorId);
 
-            var productoIds = reparto.StockInicial.Select(s => s.ProductoId).ToList();
+            var productoIds = reparto.StockInicial.Select(s => s.ProductoId)
+                .Concat(reparto.StockAdicional.Select(s => s.ProductoId))
+                .Distinct()
+                .ToList();
             var nombresProductos = await _context.Productos
                 .Where(p => productoIds.Contains(p.Id))
                 .ToDictionaryAsync(p => p.Id, p => p.Nombre);
@@ -334,7 +406,19 @@ namespace distribuidora_saas.Api.Controllers
                     s.ProductoId,
                     nombresProductos.GetValueOrDefault(s.ProductoId, "Producto no encontrado"),
                     s.CantidadInicial,
-                    s.CantidadRestante))
+                    s.CantidadRestante,
+                    reparto.StockAdicional.Where(sa => sa.ProductoId == s.ProductoId).Sum(sa => sa.Cantidad),
+                    reparto.ObtenerStockDisponible(s.ProductoId)))
+                .Concat(reparto.StockAdicional
+                    .Where(sa => reparto.StockInicial.All(s => s.ProductoId != sa.ProductoId))
+                    .GroupBy(sa => sa.ProductoId)
+                    .Select(g => new StockInicialResponseDto(
+                        g.Key,
+                        nombresProductos.GetValueOrDefault(g.Key, "Producto no encontrado"),
+                        0,
+                        0,
+                        g.Sum(sa => sa.Cantidad),
+                        g.Sum(sa => sa.CantidadRestante))))
                 .ToList();
 
             var productoIdsEnvases = reparto.EnvasesRetirados.Select(e => e.ProductoId).ToList();

@@ -15,6 +15,8 @@ export interface StockInicialItem {
   nombreProducto: string
   cantidadInicial: number
   cantidadRestante: number
+  cantidadAdicional: number
+  cantidadDisponible: number
 }
 
 export interface EnvaseRetiradoItem {
@@ -122,6 +124,8 @@ export interface StockCierreReparto {
   cantidadInicial: number
   cantidadVendida: number
   cantidadRestante: number
+  cantidadAdicional: number
+  cantidadTotalDisponible: number
 }
 
 export interface EnvaseCierreReparto {

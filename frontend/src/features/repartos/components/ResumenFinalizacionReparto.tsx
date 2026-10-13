@@ -23,6 +23,8 @@ function FilaProducto({ item }: { item: StockCierreReparto }) {
     <TableRow>
       <TableCell>{item.nombreProducto}</TableCell>
       <TableCell align="right">{textoUnidades(item.cantidadInicial)}</TableCell>
+      <TableCell align="right">{textoUnidades(item.cantidadAdicional)}</TableCell>
+      <TableCell align="right">{textoUnidades(item.cantidadTotalDisponible)}</TableCell>
       <TableCell align="right">{textoUnidades(item.cantidadVendida)}</TableCell>
       <TableCell align="right">{textoUnidades(item.cantidadRestante)}</TableCell>
     </TableRow>
@@ -102,14 +104,16 @@ export default function ResumenFinalizacionReparto({ cierre }: ResumenFinalizaci
       {cierre.stockPorProducto.length > 0 && (
         <Box sx={{ mt: 2.5 }}>
           <Typography variant="subtitle1" gutterBottom>
-            Cantidad vendida por producto
+            Desglose de stock por producto
           </Typography>
           <TableContainer>
-            <Table size="small" aria-label="Cantidad vendida por producto">
+            <Table size="small" aria-label="Desglose de stock por producto">
               <TableHead>
                 <TableRow>
                   <TableCell>Producto</TableCell>
                   <TableCell align="right">Inicial</TableCell>
+                  <TableCell align="right">Cargas adicionales</TableCell>
+                  <TableCell align="right">Total disponible</TableCell>
                   <TableCell align="right">Vendido</TableCell>
                   <TableCell align="right">Restante</TableCell>
                 </TableRow>

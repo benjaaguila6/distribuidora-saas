@@ -42,6 +42,16 @@ export async function agregarStockInicial(dto: AgregarStockInicialInput): Promis
   })
 }
 
+export async function agregarStockAdicional(
+  id: string,
+  dto: { productoId: string; cantidad: number },
+): Promise<void> {
+  await apiClient.post(`${URL_BASE}/${id}/stock-adicional`, {
+    productoId: dto.productoId,
+    cantidad: dto.cantidad,
+  })
+}
+
 export async function iniciarReparto(id: string): Promise<void> {
   await apiClient.patch(`${URL_BASE}/${id}/iniciar`)
 }

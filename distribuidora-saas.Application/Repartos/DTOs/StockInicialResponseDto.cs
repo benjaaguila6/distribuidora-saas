@@ -4,5 +4,11 @@ using System.Text;
 
 namespace distribuidora_saas.Application.Repartos.DTOs
 {
-    public record StockInicialResponseDto(Guid ProductoId, string NombreProducto, int CantidadInicial, int CantidadRestante);
+    public record StockInicialResponseDto(
+        Guid ProductoId,
+        string NombreProducto,
+        int CantidadInicial,
+        int CantidadRestante,
+        int CantidadAdicional,
+        int CantidadDisponible);
 }
