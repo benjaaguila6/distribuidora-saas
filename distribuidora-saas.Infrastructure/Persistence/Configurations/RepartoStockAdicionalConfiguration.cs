@@ -21,6 +21,9 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
             builder.Property(s => s.Cantidad)
                 .IsRequired();
 
+            builder.Property(s => s.CantidadRestante)
+                .IsRequired();
+
             builder.HasOne<Reparto>()
                 .WithMany(r => r.StockAdicional)
                 .HasForeignKey(s => s.RepartoId)

@@ -15,6 +15,8 @@ export interface StockInicialItem {
   nombreProducto: string
   cantidadInicial: number
   cantidadRestante: number
+  cantidadAdicional: number
+  cantidadDisponible: number
 }
 
 export interface EnvaseRetiradoItem {

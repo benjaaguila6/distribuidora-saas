@@ -6,14 +6,15 @@ using System.Text;
 namespace distribuidora_saas_Domain.Entitites
 {
     // Stock cargado a mitad de un reparto ya en curso (decision 3.C: trazable y acumulado).
-    // A diferencia de RepartoStockInicial, este registro NO es parte de la colección en memoria
-    // del AR Reparto: cada carga es una fila independiente que el reporte de cierre suma por producto.
+    // Cada carga permanece como fila independiente para conservar su trazabilidad: Cantidad es el
+    // valor original y CantidadRestante registra el saldo consumible de esa carga.
     // Hereda de TenantEntity para que el Global Query Filter del DbContext lo aísle por tenant.
     public class RepartoStockAdicional : TenantEntity
     {
         public Guid RepartoId { get; private set; }
         public Guid ProductoId { get; private set; }
         public int Cantidad { get; private set; }
+        public int CantidadRestante { get; private set; }
         public Guid UsuarioId { get; private set; }
         public DateTime FechaHora { get; private set; }
 
@@ -32,23 +33,16 @@ namespace distribuidora_saas_Domain.Entitites
             ProductoId = productoId;
             UsuarioId = usuarioId;
             Cantidad = cantidad;
+            CantidadRestante = cantidad;
             FechaHora = fechaHora;
         }
 
         internal void DescontarCantidad(int cantidad)
         {
-            if (cantidad <= 0)
-            {
-                return;
-            }
+            if (cantidad <= 0 || cantidad > CantidadRestante)
+                throw new ArgumentOutOfRangeException(nameof(cantidad));
 
-            if (cantidad >= Cantidad)
-            {
-                Cantidad = 0;
-                return;
-            }
-
-            Cantidad -= cantidad;
+            CantidadRestante -= cantidad;
         }
     }
 }

@@ -65,6 +65,7 @@ namespace distribuidora_saas.Api.Controllers
         {
             var reparto = await _context.Repartos
                 .Include(r => r.StockInicial)
+                .Include(r => r.StockAdicional)
                 .Include(r => r.EnvasesRetirados)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
@@ -116,16 +117,19 @@ namespace distribuidora_saas.Api.Controllers
             var adicionalPorProducto = stockAdicional
                 .GroupBy(sa => sa.ProductoId)
                 .ToDictionary(g => g.Key, g => g.Sum(sa => sa.Cantidad));
+            var adicionalRestantePorProducto = stockAdicional
+                .GroupBy(sa => sa.ProductoId)
+                .ToDictionary(g => g.Key, g => g.Sum(sa => sa.CantidadRestante));
 
-            // Se recorre el union de productos con stock inicial y con cargas adicionales para que
-            // una carga de un producto sin stock inicial quede visible en el desglose del cierre.
+            // El cierre separa la carga histórica del saldo disponible, que incluye remanentes adicionales.
             var stockPorProducto = reparto.StockInicial
                 .Select(s => new StockCierreDto(
                     s.ProductoId,
                     productos.GetValueOrDefault(s.ProductoId)?.Nombre ?? "Producto no encontrado",
                     s.CantidadInicial,
-                    s.CantidadInicial - s.CantidadRestante,
-                    s.CantidadRestante,
+                    s.CantidadInicial + adicionalPorProducto.GetValueOrDefault(s.ProductoId, 0)
+                        - s.CantidadRestante - adicionalRestantePorProducto.GetValueOrDefault(s.ProductoId, 0),
+                    s.CantidadRestante + adicionalRestantePorProducto.GetValueOrDefault(s.ProductoId, 0),
                     adicionalPorProducto.GetValueOrDefault(s.ProductoId, 0),
                     s.CantidadInicial + adicionalPorProducto.GetValueOrDefault(s.ProductoId, 0)))
                 .Concat(adicionalPorProducto
@@ -134,8 +138,8 @@ namespace distribuidora_saas.Api.Controllers
                         par.Key,
                         productos.GetValueOrDefault(par.Key)?.Nombre ?? "Producto no encontrado",
                         0,
-                        0,
-                        0,
+                        par.Value - adicionalRestantePorProducto.GetValueOrDefault(par.Key, 0),
+                        adicionalRestantePorProducto.GetValueOrDefault(par.Key, 0),
                         par.Value,
                         par.Value)))
                 .ToList();
@@ -389,7 +393,10 @@ namespace distribuidora_saas.Api.Controllers
             var recorrido = await _context.Recorridos.FindAsync(reparto.RecorridoId);
             var repartidor = await _context.Usuarios.FindAsync(reparto.RepartidorId);
 
-            var productoIds = reparto.StockInicial.Select(s => s.ProductoId).ToList();
+            var productoIds = reparto.StockInicial.Select(s => s.ProductoId)
+                .Concat(reparto.StockAdicional.Select(s => s.ProductoId))
+                .Distinct()
+                .ToList();
             var nombresProductos = await _context.Productos
                 .Where(p => productoIds.Contains(p.Id))
                 .ToDictionaryAsync(p => p.Id, p => p.Nombre);
@@ -399,7 +406,19 @@ namespace distribuidora_saas.Api.Controllers
                     s.ProductoId,
                     nombresProductos.GetValueOrDefault(s.ProductoId, "Producto no encontrado"),
                     s.CantidadInicial,
-                    s.CantidadRestante))
+                    s.CantidadRestante,
+                    reparto.StockAdicional.Where(sa => sa.ProductoId == s.ProductoId).Sum(sa => sa.Cantidad),
+                    reparto.ObtenerStockDisponible(s.ProductoId)))
+                .Concat(reparto.StockAdicional
+                    .Where(sa => reparto.StockInicial.All(s => s.ProductoId != sa.ProductoId))
+                    .GroupBy(sa => sa.ProductoId)
+                    .Select(g => new StockInicialResponseDto(
+                        g.Key,
+                        nombresProductos.GetValueOrDefault(g.Key, "Producto no encontrado"),
+                        0,
+                        0,
+                        g.Sum(sa => sa.Cantidad),
+                        g.Sum(sa => sa.CantidadRestante))))
                 .ToList();
 
             var productoIdsEnvases = reparto.EnvasesRetirados.Select(e => e.ProductoId).ToList();

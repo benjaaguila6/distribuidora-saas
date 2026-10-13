@@ -9,7 +9,6 @@ import HistoryIcon from '@mui/icons-material/History'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
@@ -312,16 +311,36 @@ export default function RepartoDetallePage() {
       {reparto.stockInicial.length > 0 && (
         <Paper sx={{ p: 2 }}>
           <Typography variant="h6" component="h2" gutterBottom>
-            Stock inicial
+            Stock del reparto
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {reparto.stockInicial.map((item) => (
-              <Chip
-                key={item.productoId}
-                label={`${item.nombreProducto}: ${item.cantidadRestante}/${item.cantidadInicial}`}
-              />
-            ))}
-          </Box>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Producto</TableCell>
+                  <TableCell align="right">Disponible</TableCell>
+                  <TableCell align="right">Inicial</TableCell>
+                  <TableCell align="right">Adicional</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {reparto.stockInicial.map((item) => (
+                  <TableRow key={item.productoId}>
+                    <TableCell>{item.nombreProducto}</TableCell>
+                    <TableCell align="right">
+                      <Typography component="span" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                        {item.cantidadDisponible}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">{item.cantidadInicial}</TableCell>
+                    <TableCell align="right">
+                      {item.cantidadAdicional > 0 ? item.cantidadAdicional : '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Paper>
       )}
 
@@ -524,6 +543,9 @@ export default function RepartoDetallePage() {
         repartoId={reparto.id}
         repartoNombre={reparto.nombreRecorrido}
         clienteInicial={clienteParaVenta}
+        stockDisponiblePorProducto={Object.fromEntries(
+          reparto.stockInicial.map((item) => [item.productoId, item.cantidadDisponible]),
+        )}
         onClose={cerrarVenta}
         onVentaCreada={() => {
           void queryClient.invalidateQueries({ queryKey: clavesRepartos.raiz })

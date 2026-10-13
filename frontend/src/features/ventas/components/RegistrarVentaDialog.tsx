@@ -89,6 +89,7 @@ function redondearDinero(monto: number): number {
 interface RegistrarVentaDialogProps {
   repartoId: string
   repartoNombre: string
+  stockDisponiblePorProducto: Record<string, number>
   clienteInicial: ClienteSeleccionado | null
   open: boolean
   onClose: () => void
@@ -98,6 +99,7 @@ interface RegistrarVentaDialogProps {
 export default function RegistrarVentaDialog({
   repartoId,
   repartoNombre,
+  stockDisponiblePorProducto,
   clienteInicial,
   open,
   onClose,
@@ -202,6 +204,7 @@ export default function RegistrarVentaDialog({
     }
 
     const erroresProductosCalculados: Record<string, string> = {}
+    const cantidadesPorProducto = new Map<string, { cantidad: number; fila: FilaProductoForm }[]>()
     for (const fila of productos) {
       if (fila.productoId === '') {
         erroresProductosCalculados[`${fila.key}:producto`] = 'Elegí un producto.'
@@ -211,6 +214,26 @@ export default function RegistrarVentaDialog({
       if (cantidad === null || cantidad < 1) {
         erroresProductosCalculados[`${fila.key}:cantidad`] =
           'La cantidad debe ser un número entero mayor o igual a 1.'
+      }
+
+      if (
+        cantidad !== null &&
+        fila.productoId !== '' &&
+        (fila.tipoMovimiento === 'Entregado' || fila.tipoMovimiento === 'Cambio')
+      ) {
+        const filasProducto = cantidadesPorProducto.get(fila.productoId) ?? []
+        filasProducto.push({ cantidad, fila })
+        cantidadesPorProducto.set(fila.productoId, filasProducto)
+      }
+    }
+
+    for (const [productoId, filasProducto] of cantidadesPorProducto) {
+      const cantidadSolicitada = filasProducto.reduce((total, fila) => total + fila.cantidad, 0)
+      const disponible = stockDisponiblePorProducto[productoId] ?? 0
+      if (cantidadSolicitada > disponible) {
+        const ultimaFila = filasProducto[filasProducto.length - 1].fila
+        erroresProductosCalculados[`${ultimaFila.key}:cantidad`] =
+          `La cantidad supera el stock disponible. Disponible: ${disponible}.`
       }
     }
 
@@ -389,6 +412,21 @@ export default function RegistrarVentaDialog({
               {productos.map((fila) => {
                 const productoSeleccionado =
                   productosDisponibles.find((item) => item.id === fila.productoId) ?? null
+                const disponible = stockDisponiblePorProducto[fila.productoId] ?? 0
+                const cantidadEnOtrasFilas = productos.reduce((total, otraFila) => {
+                  if (
+                    otraFila.key === fila.key ||
+                    otraFila.productoId !== fila.productoId ||
+                    (otraFila.tipoMovimiento !== 'Entregado' && otraFila.tipoMovimiento !== 'Cambio')
+                  ) {
+                    return total
+                  }
+                  return total + (enteroDesdeTexto(otraFila.cantidad) ?? 0)
+                }, 0)
+                const maximoCantidad =
+                  fila.tipoMovimiento === 'Entregado' || fila.tipoMovimiento === 'Cambio'
+                    ? Math.max(0, disponible - cantidadEnOtrasFilas)
+                    : undefined
 
                 return (
                   <Box
@@ -416,7 +454,7 @@ export default function RegistrarVentaDialog({
                           helperText={
                             erroresProductos[`${fila.key}:producto`] ??
                             (productoSeleccionado !== null
-                              ? `Precio unitario: ${formatoMoneda.format(productoSeleccionado.precio)}`
+                              ? `Precio unitario: ${formatoMoneda.format(productoSeleccionado.precio)} · Disponible: ${disponible}`
                               : ' ')
                           }
                         />
@@ -444,7 +482,12 @@ export default function RegistrarVentaDialog({
                       label="Cantidad"
                       size="small"
                       sx={{ width: 110 }}
-                      slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+                      slotProps={{
+                        htmlInput: {
+                          inputMode: 'numeric',
+                          ...(maximoCantidad === undefined ? {} : { max: maximoCantidad }),
+                        },
+                      }}
                       value={fila.cantidad}
                       onChange={(evento) => actualizarProducto(fila.key, { cantidad: evento.target.value })}
                       error={erroresProductos[`${fila.key}:cantidad`] !== undefined}

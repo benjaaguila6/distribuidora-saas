@@ -72,7 +72,7 @@ namespace distribuidora_saas_Domain.Entitites
         public int ObtenerStockDisponible(Guid productoId)
         {
             var disponibleInicial = _stockInicial.FirstOrDefault(s => s.ProductoId == productoId)?.CantidadRestante ?? 0;
-            var disponibleAdicional = _stockAdicional.Where(sa => sa.ProductoId == productoId).Sum(sa => sa.Cantidad);
+            var disponibleAdicional = _stockAdicional.Where(sa => sa.ProductoId == productoId).Sum(sa => sa.CantidadRestante);
             return disponibleInicial + disponibleAdicional;
         }
 
@@ -81,6 +81,11 @@ namespace distribuidora_saas_Domain.Entitites
             if (Estado != EstadoReparto.EnCurso)
             {
                 throw new InvalidOperationException("Solo se puede descontar stock de un reparto que esté en curso.");
+            }
+
+            if (cantidad <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(cantidad), "La cantidad debe ser mayor a cero.");
             }
 
             var stockProducto = _stockInicial.FirstOrDefault(s => s.ProductoId == productoId);
@@ -102,32 +107,21 @@ namespace distribuidora_saas_Domain.Entitites
                 }
             }
 
-            // El stock adicional se consume lógicamente (no trackeamos restante por carga individual).
-            // Ya validamos totalDisponible >= cantidad.
             if (cantidadPendiente > 0)
             {
-                _stockAdicional.RemoveAll(sa => sa.ProductoId == productoId && cantidadPendiente <= 0);
-                var adicionalesProducto = _stockAdicional.Where(sa => sa.ProductoId == productoId).ToList();
+                var adicionalesProducto = _stockAdicional
+                    .Where(sa => sa.ProductoId == productoId && sa.CantidadRestante > 0)
+                    .OrderBy(sa => sa.FechaHora)
+                    .ThenBy(sa => sa.Id)
+                    .ToList();
+
                 foreach (var sa in adicionalesProducto)
                 {
                     if (cantidadPendiente <= 0) break;
-                    if (sa.Cantidad <= cantidadPendiente)
-                    {
-                        cantidadPendiente -= sa.Cantidad;
-                        _stockAdicional.Remove(sa);
-                    }
-                    else
-                    {
-                        // Descontar parcialmente: no hay campo restante, pero para simplificar
-                        // removemos y no re-creamos (modelo no soporta parcial). En este caso
-                        // optamos por consumir lo necesario sumando lógica: mejor quitar y considerar
-                        // el saldo se refleja en ObtenerStockDisponible (resta lo ya descontado).
-                        // Pero no tenemos campo para parcial; alternativa: crear nuevo registro con resta.
-                        // Más simple: eliminar esta carga y no agregar parcial (modelo acumula cargas completas).
-                        // Como el descuento es por venta, consumir cargas completas hasta cubrir.
-                        cantidadPendiente -= sa.Cantidad;
-                        _stockAdicional.Remove(sa);
-                    }
+
+                    var descontarAdicional = Math.Min(cantidadPendiente, sa.CantidadRestante);
+                    sa.DescontarCantidad(descontarAdicional);
+                    cantidadPendiente -= descontarAdicional;
                 }
             }
         }
