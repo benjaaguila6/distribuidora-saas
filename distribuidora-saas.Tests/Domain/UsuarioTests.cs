@@ -11,13 +11,14 @@ public class UsuarioTests
         new(TenantId, "Juan.Perez@Example.com", "hash-inicial", "Juan Pérez", rol);
 
     [Fact]
-    public void Constructor_NormalizaEmail_Y_DejaEstadoActivoSinPasswordPendiente()
+    public void Constructor_NormalizaEmail_Y_DejaEstadoActivoConCambioDePasswordPendiente()
     {
         var usuario = CrearUsuario();
 
         Assert.Equal("juan.perez@example.com", usuario.Email);
         Assert.Equal(EstadoUsuario.Activo, usuario.Estado);
-        Assert.False(usuario.DebeCambiarPassword);
+        // Toda alta usa una contraseña temporal: el cambio queda pendiente.
+        Assert.True(usuario.DebeCambiarPassword);
         Assert.Null(usuario.Telefono);
         Assert.Equal(TenantId, usuario.TenantId);
     }
@@ -139,7 +140,7 @@ public class UsuarioTests
     public void FlujoCompleto_TransicionesDeLaPasswordPendiente()
     {
         var usuario = CrearUsuario();
-        Assert.False(usuario.DebeCambiarPassword);
+        Assert.True(usuario.DebeCambiarPassword);
 
         usuario.ResetearPassword("hash-temporal");
         Assert.True(usuario.DebeCambiarPassword);

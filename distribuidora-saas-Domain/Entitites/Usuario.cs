@@ -46,6 +46,9 @@ namespace distribuidora_saas_Domain.Entitites
             NombreCompleto = nombreCompleto;
             Rol = rol;
             Estado = EstadoUsuario.Activo;
+            // Toda alta usa una contraseña temporal generada por el sistema:
+            // el empleado debe definir su contraseña propia en el primer inicio de sesión.
+            DebeCambiarPassword = true;
             EstablecerTelefono(telefono);
         }
 
