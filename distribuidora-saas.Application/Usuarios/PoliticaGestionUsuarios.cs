@@ -1,4 +1,5 @@
 using distribuidora_saas_Domain.Enums;
+using System;
 
 namespace distribuidora_saas.Application.Usuarios
 {
@@ -22,6 +23,14 @@ namespace distribuidora_saas.Application.Usuarios
             RolUsuario.Gerente => objetivo is RolUsuario.Repartidor,
             _ => false
         };
+
+        /// <summary>
+        /// Indica si <paramref name="actorId"/> puede resetear la contraseña de
+        /// <paramref name="objetivoId"/>. Nadie puede resetear su propia contraseña
+        /// por este módulo: el usuario debe usar el endpoint de cambio de contraseña.
+        /// </summary>
+        public static bool PuedeRestablecerPassword(Guid actorId, Guid objetivoId, RolUsuario actorRol, RolUsuario objetivoRol)
+            => actorId != objetivoId && PuedeGestionar(actorRol, objetivoRol);
 
         /// <summary>Solo el Administrador puede cambiar el rol de un usuario.</summary>
         public static bool PuedeCambiarRol(RolUsuario actor) => actor == RolUsuario.Administrador;

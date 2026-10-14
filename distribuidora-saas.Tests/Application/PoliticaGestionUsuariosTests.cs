@@ -75,4 +75,52 @@ public class PoliticaGestionUsuariosTests
 
         Assert.Empty(roles);
     }
+
+    // ----- Escenarios de gestión: el Gerente sólo opera sobre Repartidores -----
+
+    [Theory]
+    [InlineData(RolUsuario.Administrador, RolUsuario.Gerente, true)]
+    [InlineData(RolUsuario.Administrador, RolUsuario.Repartidor, true)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Repartidor, true)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Gerente, false)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Administrador, false)]
+    public void Gerente_SoloPuedeCrearRepartidores(RolUsuario actor, RolUsuario nuevoRol, bool esperado)
+    {
+        Assert.Equal(esperado, PoliticaGestionUsuarios.PuedeAsignarRol(actor, nuevoRol));
+    }
+
+    [Theory]
+    [InlineData(RolUsuario.Administrador, RolUsuario.Gerente, true)]
+    [InlineData(RolUsuario.Administrador, RolUsuario.Repartidor, true)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Repartidor, true)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Gerente, false)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Administrador, false)]
+    public void Gerente_SoloPuedeGestionarRepartidores(RolUsuario actor, RolUsuario objetivo, bool esperado)
+    {
+        Assert.Equal(esperado, PoliticaGestionUsuarios.PuedeGestionar(actor, objetivo));
+    }
+
+    // ----- PuedeRestablecerPassword: nunca sobre uno mismo -----
+
+    [Fact]
+    public void PuedeRestablecerPassword_RechazaElResetSobreUnoMismo()
+    {
+        var actorId = Guid.NewGuid();
+
+        Assert.False(PoliticaGestionUsuarios.PuedeRestablecerPassword(
+            actorId, actorId, RolUsuario.Administrador, RolUsuario.Gerente));
+    }
+
+    [Theory]
+    [InlineData(RolUsuario.Administrador, RolUsuario.Gerente, true)]
+    [InlineData(RolUsuario.Administrador, RolUsuario.Repartidor, true)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Repartidor, true)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Gerente, false)]
+    [InlineData(RolUsuario.Gerente, RolUsuario.Administrador, false)]
+    public void PuedeRestablecerPassword_RespetaLaMatrizCuandoElObjetivoEsOtro(
+        RolUsuario actorRol, RolUsuario objetivoRol, bool esperado)
+    {
+        Assert.Equal(esperado, PoliticaGestionUsuarios.PuedeRestablecerPassword(
+            Guid.NewGuid(), Guid.NewGuid(), actorRol, objetivoRol));
+    }
 }

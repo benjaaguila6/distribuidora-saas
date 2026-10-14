@@ -22,6 +22,9 @@ namespace distribuidora_saas.Api.Controllers
         private const int SqlErrorDuplicadoIndiceUnico = 2601;
         private const int SqlErrorDuplicadoClavePrimaria = 2627;
 
+        // Código de negocio: repartidor con un reparto en curso.
+        private const string CodigoRepartidorConRepartoEnCurso = "REPARTIDOR_TIENE_REPARTO_EN_CURSO";
+
         private readonly ApplicationDbContext _context;
         private readonly IPasswordHasher _passwordHasher;
         private readonly ICurrentUserService _currentUser;
@@ -72,7 +75,7 @@ namespace distribuidora_saas.Api.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Administrador,Gerente")]
-        public async Task<ActionResult<UsuarioResponseDto>> Crear(
+        public async Task<ActionResult<UsuarioCreadoResponseDto>> Crear(
             [FromBody] CrearUsuarioDto dto,
             [FromServices] ICurrentTenantService currentTenant)
         {
@@ -101,7 +104,10 @@ namespace distribuidora_saas.Api.Controllers
                 return Conflict("Ya existe un usuario registrado con ese email.");
             }
 
-            var passwordHash = _passwordHasher.HashPassword(dto.Password);
+            // Contraseña temporal generada en el servidor: se hashea antes de
+            // persistir y se devuelve en claro UNA SOLA VEZ en la respuesta.
+            var passwordTemporal = GeneradorPasswordTemporal.Generar();
+            var passwordHash = _passwordHasher.HashPassword(passwordTemporal);
 
             var usuario = new Usuario(currentTenant.TenantId.Value, dto.Email, passwordHash, dto.NombreCompleto, dto.Rol, dto.Telefono);
 
@@ -116,10 +122,11 @@ namespace distribuidora_saas.Api.Controllers
                 return Conflict("Ya existe un usuario registrado con ese email.");
             }
 
-            return CreatedAtAction(nameof(ObtenerPorId), new { id = usuario.Id }, new UsuarioResponseDto(
+            return CreatedAtAction(nameof(ObtenerPorId), new { id = usuario.Id }, new UsuarioCreadoResponseDto(
                 usuario.Id, usuario.Email, usuario.NombreCompleto,
                 usuario.Rol.ToString(), usuario.Estado.ToString(),
-                usuario.FechaCreacion, usuario.DebeCambiarPassword, usuario.Telefono));
+                usuario.FechaCreacion, usuario.DebeCambiarPassword, usuario.Telefono,
+                passwordTemporal));
         }
 
         [HttpPut("{id:guid}")]
@@ -143,8 +150,11 @@ namespace distribuidora_saas.Api.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden, "No tiene permisos para gestionar este usuario.");
             }
 
-            // El cambio de rol es exclusivo del Administrador y debe respetar los roles asignables.
-            if (dto.Rol != usuario.Rol)
+            // El email no es editable: sólo se actualizan nombre, teléfono y,
+            // si el actor es Administrador, el rol.
+            var cambiaRol = dto.Rol != usuario.Rol;
+
+            if (cambiaRol)
             {
                 if (!PoliticaGestionUsuarios.PuedeCambiarRol(actor.Value))
                 {
@@ -159,38 +169,22 @@ namespace distribuidora_saas.Api.Controllers
                 // Un repartidor con un reparto en curso no puede cambiar de rol.
                 if (usuario.Rol == RolUsuario.Repartidor && await TieneRepartoEnCurso(id))
                 {
-                    return Conflict("No se puede cambiar de rol a un repartidor que tiene un reparto en curso.");
+                    return Conflict(new
+                    {
+                        codigo = CodigoRepartidorConRepartoEnCurso,
+                        mensaje = "No se puede cambiar de rol a un repartidor que tiene un reparto en curso."
+                    });
                 }
             }
 
-            var emailNormalizado = dto.Email.Trim().ToLowerInvariant();
-
-            // Unicidad GLOBAL de email, excluyendo el propio usuario.
-            var emailEnUso = await _context.Usuarios
-                .IgnoreQueryFilters()
-                .AnyAsync(u => u.Email == emailNormalizado && u.Id != id);
-
-            if (emailEnUso)
-            {
-                return Conflict("Ya existe un usuario registrado con ese email.");
-            }
-
-            usuario.ActualizarEmail(dto.Email);
             usuario.ActualizarDatosBasicos(dto.NombreCompleto, dto.Telefono);
 
-            if (dto.Rol != usuario.Rol)
+            if (cambiaRol)
             {
                 usuario.CambiarRol(dto.Rol);
             }
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex) when (EsViolacionDeUnicidad(ex))
-            {
-                return Conflict("Ya existe un usuario registrado con ese email.");
-            }
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -202,17 +196,26 @@ namespace distribuidora_saas.Api.Controllers
             var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario is null) return NotFound();
 
+            var actorId = _currentUser.UsuarioId;
             var actor = _currentUser.Rol;
-            if (actor is null) return Forbid();
+            if (actorId is null || actor is null) return Forbid();
+
+            // Nadie puede resetear su propia contraseña por este módulo:
+            // debe usar el endpoint cambiar-password.
+            if (actorId.Value == id)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    "No puede resetear su propia contraseña. Use el endpoint 'cambiar-password'.");
+            }
 
             if (usuario.Rol == RolUsuario.Administrador)
             {
                 return StatusCode(StatusCodes.Status403Forbidden, "No se puede modificar a un Administrador desde este módulo.");
             }
 
-            if (!PoliticaGestionUsuarios.PuedeGestionar(actor.Value, usuario.Rol))
+            if (!PoliticaGestionUsuarios.PuedeRestablecerPassword(actorId.Value, id, actor.Value, usuario.Rol))
             {
-                return StatusCode(StatusCodes.Status403Forbidden, "No tiene permisos para gestionar este usuario.");
+                return StatusCode(StatusCodes.Status403Forbidden, "No tiene permisos para resetear la contraseña de este usuario.");
             }
 
             var passwordHash = _passwordHasher.HashPassword(dto.PasswordNueva);

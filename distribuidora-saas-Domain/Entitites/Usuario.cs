@@ -87,17 +87,8 @@ namespace distribuidora_saas_Domain.Entitites
             NombreCompleto = nombreCompleto.Trim();
         }
 
-        public void ActualizarEmail(string email)
-        {
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                throw new ArgumentException("El email es obligatorio.", nameof(email));
-            }
-
-            Email = email.Trim().ToLowerInvariant();
-        }
-
         // Actualiza los datos personales editables (nombre y teléfono).
+        // El email no es editable desde el módulo de gestión.
         public void ActualizarDatosBasicos(string nombreCompleto, string? telefono)
         {
             ActualizarNombreCompleto(nombreCompleto);
