@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import RutaPorRol from '../features/auth/components/RutaPorRol'
 import RutaProtegida from '../features/auth/components/RutaProtegida'
+import CambiarPasswordPage from '../features/auth/components/CambiarPasswordPage'
 import ClientesListPage from '../features/clientes/components/ClientesListPage'
 import ProductosListPage from '../features/productos/components/ProductosListPage'
 import RecorridoDetallePage from '../features/recorridos/components/RecorridoDetallePage'
@@ -24,6 +25,9 @@ export const router = createBrowserRouter([
     path: '/',
     element: <RutaProtegida />,
     children: [
+          // Ruta protegida pero fuera del shell de navegación: sólo se accede
+          // mientras el cambio de contraseña está pendiente.
+          { path: 'cambiar-password', element: <CambiarPasswordPage /> },
           {
             element: <AppLayout />,
             children: [
