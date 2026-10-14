@@ -94,11 +94,6 @@ namespace distribuidora_saas_Domain.Entitites
             Email = email.Trim().ToLowerInvariant();
         }
 
-        public void ActualizarRol(RolUsuario rol)
-        {
-            Rol = rol;
-        }
-
         // Actualiza los datos personales editables (nombre y teléfono).
         public void ActualizarDatosBasicos(string nombreCompleto, string? telefono)
         {
