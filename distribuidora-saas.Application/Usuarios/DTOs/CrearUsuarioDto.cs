@@ -9,6 +9,7 @@ namespace distribuidora_saas.Application.Usuarios.DTOs
         string Email,
         string Password,
         string NombreCompleto,
-        RolUsuario Rol
+        RolUsuario Rol,
+        string? Telefono = null
     );
 }

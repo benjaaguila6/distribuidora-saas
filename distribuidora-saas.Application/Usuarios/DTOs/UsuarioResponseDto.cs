@@ -10,6 +10,8 @@ namespace distribuidora_saas.Application.Usuarios.DTOs
         string NombreCompleto,
         string Rol,
         string Estado,
-        DateTime FechaCreacion
+        DateTime FechaCreacion,
+        bool DebeCambiarPassword = false,
+        string? Telefono = null
     );
 }
