@@ -61,12 +61,14 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<ValidationFilter>();
+builder.Services.AddScoped<DebeCambiarPasswordFilter>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasherService>();
 
 builder.Services.AddControllers(options =>
 {
     options.Filters.AddService<ValidationFilter>();
+    options.Filters.AddService<DebeCambiarPasswordFilter>();
 }).AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
