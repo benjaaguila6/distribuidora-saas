@@ -18,14 +18,12 @@ import { useAuth } from '../../features/auth/hooks/useAuth'
 
 export const ANCHO_BARRA_LATERAL = 260
 
-const ROL_ADMINISTRADOR = 'Administrador'
 const ROL_REPARTIDOR = 'Repartidor'
 
 interface ItemNavegacion {
   texto: string
   ruta: string
   icono: ReactNode
-  soloAdministrador?: boolean
   ocultoParaRepartidor?: boolean
 }
 
@@ -39,7 +37,6 @@ const ITEMS_NAVEGACION: ItemNavegacion[] = [
     texto: 'Usuarios',
     ruta: '/usuarios',
     icono: <ManageAccountsIcon />,
-    soloAdministrador: true,
     ocultoParaRepartidor: true,
   },
 ]
@@ -58,10 +55,11 @@ export default function Sidebar({ abierta, variante, alCerrar }: SidebarProps) {
   const esRutaActiva = (ruta: string) =>
     ruta === '/' ? location.pathname === '/' : location.pathname.startsWith(ruta)
 
-  // El Repartidor solo ve los items que no estén marcados como ocultos para su rol.
+  // El Repartidor solo ve los items que no estén marcados como ocultos para su
+  // rol. Administrador y Gerente ven el resto del menú.
   const esItemVisible = (item: ItemNavegacion) => {
     if (usuario?.rol === ROL_REPARTIDOR) return !item.ocultoParaRepartidor
-    return !item.soloAdministrador || usuario?.rol === ROL_ADMINISTRADOR
+    return true
   }
 
   return (
