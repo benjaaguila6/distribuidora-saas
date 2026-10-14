@@ -41,8 +41,8 @@ namespace distribuidora_saas.Api.Filters
                     {
                         context.Result = new ObjectResult(new
                         {
-                            codigo = "PASSWORD_CAMBIO_REQUERIDO",
-                            mensaje = "Debe cambiar la contraseña antes de continuar."
+                            code = "PASSWORD_CAMBIO_REQUERIDO",
+                            requiereCambioPassword = true
                         })
                         {
                             StatusCode = StatusCodes.Status403Forbidden
