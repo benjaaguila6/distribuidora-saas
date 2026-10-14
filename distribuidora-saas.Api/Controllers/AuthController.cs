@@ -96,7 +96,14 @@ namespace distribuidora_saas.Api.Controllers
             {
                 return Unauthorized("Refresh token inválido o expirado.");
             }
-                
+
+            // Defensa explícita: un usuario inactivo no puede refrescar su sesión,
+            // aunque su refresh token siguiera vigente.
+            if (usuario.Estado == distribuidora_saas_Domain.Enums.EstadoUsuario.Inactivo)
+            {
+                return Unauthorized("El usuario está inactivo.");
+            }
+
             var nuevoAccessToken = _jwtService.GenerarAccessToken(usuario);
             var nuevoRefreshToken = _jwtService.GenerarRefreshToken();
             var refreshTokenExpiracionDias = int.Parse(_configuration["Jwt:RefreshTokenExpirationDays"]!);
