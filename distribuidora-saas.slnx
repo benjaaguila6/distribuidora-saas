@@ -5,4 +5,7 @@
     <Project Path="distribuidora-saas.Application/distribuidora-saas.Application.csproj" />
     <Project Path="distribuidora-saas.Infrastructure/distribuidora-saas.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="distribuidora-saas.Tests/distribuidora-saas.Tests.csproj" />
+  </Folder>
 </Solution>

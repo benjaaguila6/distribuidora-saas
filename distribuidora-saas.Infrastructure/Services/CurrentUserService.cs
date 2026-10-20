@@ -1,4 +1,5 @@
 using distribuidora_saas.Application.Common.Interfaces;
+using distribuidora_saas_Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,16 @@ namespace distribuidora_saas.Infrastructure.Services
                 }
 
                 return Guid.TryParse(usuarioIdClaim, out var usuarioId) ? usuarioId : null;
+            }
+        }
+
+        public RolUsuario? Rol
+        {
+            get
+            {
+                var rolClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
+
+                return Enum.TryParse<RolUsuario>(rolClaim, out var rol) ? rol : null;
             }
         }
     }

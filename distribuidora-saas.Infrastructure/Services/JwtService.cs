@@ -36,6 +36,13 @@ namespace distribuidora_saas.Infrastructure.Services
             new("nombre", usuario.NombreCompleto)
         };
 
+            // Solo se emite el claim cuando el usuario debe cambiar la contraseña;
+            // el filtro global bloquea el resto de endpoints hasta que lo haga.
+            if (usuario.DebeCambiarPassword)
+            {
+                claims.Add(new Claim("debe_cambiar_password", "true"));
+            }
+
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

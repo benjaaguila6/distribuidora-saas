@@ -1,5 +1,6 @@
 import axios from 'axios'
-import type { LoginResponse } from '../types'
+import { apiClient } from '../../../lib/axios'
+import type { CambiarPasswordInput, LoginResponse } from '../types'
 
 const authHttpClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -15,5 +16,12 @@ export async function refresh(usuarioId: string, refreshToken: string): Promise<
     usuarioId,
     refreshToken,
   })
+  return data
+}
+
+// Requiere el header Authorization, por eso usa apiClient (que lo adjunta y
+// además reintenta ante un 401 refrescando el token).
+export async function cambiarPassword(datos: CambiarPasswordInput): Promise<LoginResponse> {
+  const { data } = await apiClient.post<LoginResponse>('/api/auth/cambiar-password', datos)
   return data
 }

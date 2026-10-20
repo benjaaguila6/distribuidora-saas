@@ -12,7 +12,30 @@ interface RequestConRetry extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
 
+const CODIGO_PASSWORD_CAMBIO_REQUERIDO = 'PASSWORD_CAMBIO_REQUERIDO'
+const RUTA_CAMBIO_PASSWORD = '/cambiar-password'
+
 let refreshEnCurso: Promise<string> | null = null
+let redirigiendoACambioPassword = false
+
+function esPasswordCambioRequerido(data: unknown): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    (data as { code?: unknown }).code === CODIGO_PASSWORD_CAMBIO_REQUERIDO
+  )
+}
+
+// Evita disparar el flujo de refresh y cualquier reintento: la única salida es
+// que el usuario cambie su contraseña. La bandera y el chequeo de la ruta
+// actual evitan redirecciones repetidas o en bucle.
+function redirigirACambioPassword(): void {
+  if (redirigiendoACambioPassword || window.location.pathname === RUTA_CAMBIO_PASSWORD) {
+    return
+  }
+  redirigiendoACambioPassword = true
+  window.location.href = RUTA_CAMBIO_PASSWORD
+}
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -30,6 +53,16 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const requestOriginal = error.config as RequestConRetry | undefined
+
+    // El backend bloquea con 403 cuando el usuario debe cambiar la contraseña.
+    // No corresponde refrescar ni reintentar: se redirige al formulario.
+    if (
+      error.response?.status === 403 &&
+      esPasswordCambioRequerido(error.response.data)
+    ) {
+      redirigirACambioPassword()
+      return Promise.reject(error)
+    }
 
     const puedeReintentar =
       error.response?.status === 401 &&

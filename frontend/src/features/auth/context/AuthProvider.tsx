@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer } from 'react'
 import type { Dispatch, ReactNode } from 'react'
 import { login, refresh } from '../api/authService'
-import { extraerUsuarioIdDelToken } from '../jwt'
 import type { LoginResponse, UsuarioSesion } from '../types'
 import {
   actualizarRefreshToken,
@@ -43,7 +42,12 @@ function aplicarSesion(respuesta: LoginResponse, dispatch: Dispatch<SesionAction
   dispatch({
     type: 'sesionEstablecida',
     accessToken: respuesta.accessToken,
-    usuario: { nombreCompleto: respuesta.nombreCompleto, rol: respuesta.rol },
+    usuario: {
+      usuarioId: respuesta.usuarioId,
+      nombreCompleto: respuesta.nombreCompleto,
+      rol: respuesta.rol,
+      debeCambiarPassword: respuesta.debeCambiarPassword,
+    },
   })
 }
 
@@ -84,11 +88,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const iniciarSesion = useCallback(async (email: string, password: string) => {
     const respuesta = await login(email, password)
-    const usuarioId = extraerUsuarioIdDelToken(respuesta.accessToken)
-    if (usuarioId === null) {
-      throw new Error('No se pudo obtener el identificador del usuario.')
-    }
-    guardarRefreshToken(respuesta.refreshToken, usuarioId)
+    // El identificador viene en la respuesta del login: no se deriva del token.
+    guardarRefreshToken(respuesta.refreshToken, respuesta.usuarioId)
     aplicarSesion(respuesta, dispatch)
   }, [])
 
@@ -98,9 +99,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'sesionLimpiada' })
   }, [])
 
+  const actualizarSesionTrasCambioPassword = useCallback((respuesta: LoginResponse) => {
+    aplicarSesion(respuesta, dispatch)
+  }, [])
+
   const valor = useMemo(
-    () => ({ ...estado, iniciarSesion, cerrarSesion }),
-    [estado, iniciarSesion, cerrarSesion],
+    () => ({
+      ...estado,
+      iniciarSesion,
+      cerrarSesion,
+      actualizarSesionTrasCambioPassword,
+    }),
+    [estado, iniciarSesion, cerrarSesion, actualizarSesionTrasCambioPassword],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

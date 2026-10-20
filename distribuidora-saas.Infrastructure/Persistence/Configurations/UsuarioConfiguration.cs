@@ -33,6 +33,9 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
+            builder.Property(u => u.Telefono)
+                .HasMaxLength(30);
+
             builder.Property(u => u.Rol)
                 .HasConversion<string>()
                 .HasMaxLength(20);
@@ -40,6 +43,10 @@ namespace distribuidora_saas.Infrastructure.Persistence.Configurations
             builder.Property(u => u.Estado)
                 .HasConversion<string>()
                 .HasMaxLength(20);
+
+            builder.Property(u => u.DebeCambiarPassword)
+                .IsRequired()
+                .HasDefaultValue(false);
 
             builder.Property(u => u.RefreshToken)
                 .HasMaxLength(500);

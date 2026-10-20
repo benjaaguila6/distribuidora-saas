@@ -14,15 +14,14 @@ namespace distribuidora_saas.Application.Usuarios.Validators
                 .NotEmpty().WithMessage("El email es obligatorio.")
                 .EmailAddress().WithMessage("El formato del email no es válido.");
 
-            RuleFor(x => x.Password)
-                .NotEmpty().WithMessage("La contraseña es obligatoria.")
-                .MinimumLength(8).WithMessage("La contraseña debe tener al menos 8 caracteres.")
-                .Matches("[A-Z]").WithMessage("La contraseña debe tener al menos una mayúscula.")
-                .Matches("[0-9]").WithMessage("La contraseña debe tener al menos un número.");
-
             RuleFor(x => x.NombreCompleto)
                 .NotEmpty().WithMessage("El nombre completo es obligatorio.")
                 .MaximumLength(200);
+
+            RuleFor(x => x.Telefono)
+                .MaximumLength(30).WithMessage("El teléfono no puede superar los 30 caracteres.")
+                .Matches(@"^[0-9+\-\s()]*$").WithMessage("El formato del teléfono no es válido.")
+                .When(x => !string.IsNullOrWhiteSpace(x.Telefono));
 
             RuleFor(x => x.Rol)
                 .IsInEnum().WithMessage("El rol no es válido.");

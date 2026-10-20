@@ -8,7 +8,9 @@ namespace distribuidora_saas.Application.Auth.DTOs
         string AccessToken,
         string RefreshToken,
         DateTime AccessTokenExpiracion,
+        Guid UsuarioId,
         string NombreCompleto,
-        string Rol
+        string Rol,
+        bool DebeCambiarPassword
     );
 }
